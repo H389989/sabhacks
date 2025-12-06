@@ -6,6 +6,7 @@ Features:
 - Local Studio Mode: create, select, move, scale parts
 - Part type selection: Cube, Sphere, Wedge, Cylinder
 - Scrollable fancy GUI
+- Toggle menu button
 ]]--
 
 local player = game.Players.LocalPlayer
@@ -26,7 +27,6 @@ local jumpPowerValue = humanoid.JumpPower
 local editorMode = false
 local editorParts = {}
 local selectedPart = nil
-local partShape = Enum.PartType.Block
 
 -- SELECTION BOX
 local selectionBox = Instance.new("SelectionBox")
@@ -48,8 +48,9 @@ screenGui.Name = "UltimatePlayerGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- MAIN PANEL
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0.4,0,0.5,0) -- 40% width, 50% height
+frame.Size = UDim2.new(0.4,0,0.5,0)
 frame.Position = UDim2.new(0,20,0,50)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.BorderSizePixel = 0
@@ -80,9 +81,7 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 layout.Parent = scrollFrame
 
--- =========================
 -- HELPER FUNCTIONS
--- =========================
 local function createSlider(nameText,min,max,default,callback)
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1,-20,0,50)
@@ -155,9 +154,7 @@ local function createButton(text,callback)
 	button.MouseButton1Click:Connect(callback)
 end
 
--- =========================
 -- PLAYER CONTROL SLIDERS
--- =========================
 createSlider("WalkSpeed",16,500,walkSpeedValue,function(val)
 	walkSpeedValue = val
 	if not flying then humanoid.WalkSpeed = walkSpeedValue end
@@ -168,15 +165,11 @@ createSlider("JumpPower",50,500,jumpPowerValue,function(val)
 end)
 createSlider("FlySpeed",10,500,flySpeed,function(val) flySpeed=val end)
 
--- =========================
 -- PLAYER CONTROL BUTTONS
--- =========================
 createButton("Toggle Fly (F)",function() flying = not flying end)
 createButton("Toggle Noclip (N)",function() noclip = not noclip end)
 
--- =========================
 -- LOCAL STUDIO MODE BUTTONS
--- =========================
 createButton("Toggle Editor Mode (E)",function() editorMode = not editorMode; selectedPart=nil end)
 
 createButton("Create Cube (C)",function()
@@ -234,9 +227,7 @@ createButton("Delete Selected Part",function()
 	if selectedPart then selectedPart:Destroy(); selectedPart=nil end
 end)
 
--- =========================
 -- SCALING SLIDERS
--- =========================
 createSlider("Scale X",0.1,20,4,function(val)
 	if selectedPart then
 		selectedPart.Size = Vector3.new(val,selectedPart.Size.Y,selectedPart.Size.Z)
@@ -253,9 +244,29 @@ createSlider("Scale Z",0.1,20,4,function(val)
 	end
 end)
 
--- =========================
--- MOBILE TOUCH BUTTONS (Movement)
--- =========================
+-- MENU TOGGLE BUTTON
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0,100,0,40)
+toggleButton.Position = UDim2.new(0,20,0,10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+toggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextSize = 16
+toggleButton.Text = "Close Menu"
+toggleButton.Parent = screenGui
+
+local menuOpen = true
+toggleButton.MouseButton1Click:Connect(function()
+	menuOpen = not menuOpen
+	frame.Visible = menuOpen
+	if menuOpen then
+		toggleButton.Text = "Close Menu"
+	else
+		toggleButton.Text = "Open Menu"
+	end
+end)
+
+-- MOBILE TOUCH BUTTONS
 local mobileButtons = {}
 if touchEnabled then
 	local btnNames = {"Forward","Back","Left","Right","Up","Down"}
@@ -292,9 +303,7 @@ if touchEnabled then
 	end
 end
 
--- =========================
--- FLY & NOCLIP LOGIC + PART MOVE
--- =========================
+-- FLY, NOCLIP, AND PART MOVEMENT
 local velocity = Instance.new("BodyVelocity")
 velocity.MaxForce = Vector3.new(1e5,1e5,1e5)
 velocity.Velocity = Vector3.new(0,0,0)
@@ -348,9 +357,7 @@ runService.RenderStepped:Connect(function()
 	end
 end)
 
--- =========================
 -- KEYBINDS
--- =========================
 uis.InputBegan:Connect(function(input)
 	if input.KeyCode==Enum.KeyCode.F then flying = not flying end
 	if input.KeyCode==Enum.KeyCode.N then noclip = not noclip end
