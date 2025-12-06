@@ -1,1 +1,372 @@
+--[[
+Ultimate Player Panel + Local Studio Mode
+Features:
+- WalkSpeed / JumpPower / FlySpeed sliders
+- Fly & Noclip (PC + Mobile)
+- Local Studio Mode: create, select, move, scale parts
+- Part type selection: Cube, Sphere, Wedge, Cylinder
+- Scrollable fancy GUI
+]]--
 
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+local uis = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+local touchEnabled = uis.TouchEnabled
+
+-- SETTINGS
+local flySpeed = 50
+local flying = false
+local noclip = false
+local moveVector = Vector3.new(0,0,0)
+local walkSpeedValue = humanoid.WalkSpeed
+local jumpPowerValue = humanoid.JumpPower
+local editorMode = false
+local editorParts = {}
+local selectedPart = nil
+local partShape = Enum.PartType.Block
+
+-- SELECTION BOX
+local selectionBox = Instance.new("SelectionBox")
+selectionBox.LineThickness = 0.05
+selectionBox.SurfaceColor3 = Color3.fromRGB(0,170,255)
+selectionBox.SurfaceTransparency = 0.5
+selectionBox.Adornee = nil
+selectionBox.Parent = workspace
+
+local function selectPart(part)
+	if selectedPart then selectionBox.Adornee = nil end
+	selectedPart = part
+	selectionBox.Adornee = part
+end
+
+-- GUI SETUP
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "UltimatePlayerGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0.4,0,0.5,0) -- 40% width, 50% height
+frame.Position = UDim2.new(0,20,0,50)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,40)
+title.BackgroundTransparency = 1
+title.Text = "Player Control Panel"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.Parent = frame
+
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1,0,1,-50)
+scrollFrame.Position = UDim2.new(0,0,0,40)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0,8)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
+layout.Parent = scrollFrame
+
+-- =========================
+-- HELPER FUNCTIONS
+-- =========================
+local function createSlider(nameText,min,max,default,callback)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1,-20,0,50)
+	container.BackgroundTransparency = 1
+	container.Parent = scrollFrame
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,0,20)
+	label.Text = nameText..": "..default
+	label.TextColor3 = Color3.fromRGB(255,255,255)
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 16
+	label.Parent = container
+
+	local sliderBar = Instance.new("Frame")
+	sliderBar.Size = UDim2.new(1,0,0,10)
+	sliderBar.Position = UDim2.new(0,0,0,25)
+	sliderBar.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	sliderBar.BorderSizePixel = 0
+	sliderBar.Parent = container
+
+	local sliderFill = Instance.new("Frame")
+	sliderFill.Size = UDim2.new((default-min)/(max-min),0,1,0)
+	sliderFill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+	sliderFill.BorderSizePixel = 0
+	sliderFill.Parent = sliderBar
+
+	local function updateValue(x)
+		local percent = math.clamp((x - sliderBar.AbsolutePosition.X)/sliderBar.AbsoluteSize.X,0,1)
+		local val = math.floor(min + percent*(max-min))
+		sliderFill.Size = UDim2.new(percent,0,1,0)
+		label.Text = nameText..": "..val
+		callback(val)
+	end
+
+	sliderBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			updateValue(input.Position.X)
+			local conn
+			conn = uis.InputChanged:Connect(function(move)
+				if move.UserInputType == Enum.UserInputType.MouseMovement then
+					updateValue(move.Position.X)
+				end
+			end)
+			input.Changed:Connect(function()
+				if input.UserInputState==Enum.UserInputState.End then
+					conn:Disconnect()
+				end
+			end)
+		end
+	end)
+end
+
+local function createButton(text,callback)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1,-20,0,35)
+	button.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	button.TextColor3 = Color3.fromRGB(255,255,255)
+	button.Font = Enum.Font.Gotham
+	button.TextSize = 16
+	button.Text = text
+	button.BorderSizePixel = 0
+	button.AutoButtonColor = false
+	button.Parent = scrollFrame
+
+	button.MouseEnter:Connect(function() button.BackgroundColor3 = Color3.fromRGB(0,170,255) end)
+	button.MouseLeave:Connect(function() button.BackgroundColor3 = Color3.fromRGB(60,60,60) end)
+	button.MouseButton1Click:Connect(callback)
+end
+
+-- =========================
+-- PLAYER CONTROL SLIDERS
+-- =========================
+createSlider("WalkSpeed",16,500,walkSpeedValue,function(val)
+	walkSpeedValue = val
+	if not flying then humanoid.WalkSpeed = walkSpeedValue end
+end)
+createSlider("JumpPower",50,500,jumpPowerValue,function(val)
+	jumpPowerValue = val
+	if not flying then humanoid.JumpPower = jumpPowerValue end
+end)
+createSlider("FlySpeed",10,500,flySpeed,function(val) flySpeed=val end)
+
+-- =========================
+-- PLAYER CONTROL BUTTONS
+-- =========================
+createButton("Toggle Fly (F)",function() flying = not flying end)
+createButton("Toggle Noclip (N)",function() noclip = not noclip end)
+
+-- =========================
+-- LOCAL STUDIO MODE BUTTONS
+-- =========================
+createButton("Toggle Editor Mode (E)",function() editorMode = not editorMode; selectedPart=nil end)
+
+createButton("Create Cube (C)",function()
+	if editorMode then
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(4,1,4)
+		part.Position = hrp.Position + hrp.CFrame.LookVector*10
+		part.Anchored = true
+		part.Shape = Enum.PartType.Block
+		part.Parent = workspace
+		editorParts[#editorParts+1]=part
+		selectPart(part)
+	end
+end)
+
+createButton("Create Sphere",function()
+	if editorMode then
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(4,4,4)
+		part.Position = hrp.Position + hrp.CFrame.LookVector*10
+		part.Anchored = true
+		part.Shape = Enum.PartType.Ball
+		part.Parent = workspace
+		editorParts[#editorParts+1]=part
+		selectPart(part)
+	end
+end)
+
+createButton("Create Wedge",function()
+	if editorMode then
+		local part = Instance.new("WedgePart")
+		part.Size = Vector3.new(4,1,4)
+		part.Position = hrp.Position + hrp.CFrame.LookVector*10
+		part.Anchored = true
+		part.Parent = workspace
+		editorParts[#editorParts+1]=part
+		selectPart(part)
+	end
+end)
+
+createButton("Create Cylinder",function()
+	if editorMode then
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(4,4,4)
+		part.Position = hrp.Position + hrp.CFrame.LookVector*10
+		part.Anchored = true
+		part.Shape = Enum.PartType.Cylinder
+		part.Parent = workspace
+		editorParts[#editorParts+1]=part
+		selectPart(part)
+	end
+end)
+
+createButton("Delete Selected Part",function()
+	if selectedPart then selectedPart:Destroy(); selectedPart=nil end
+end)
+
+-- =========================
+-- SCALING SLIDERS
+-- =========================
+createSlider("Scale X",0.1,20,4,function(val)
+	if selectedPart then
+		selectedPart.Size = Vector3.new(val,selectedPart.Size.Y,selectedPart.Size.Z)
+	end
+end)
+createSlider("Scale Y",0.1,20,1,function(val)
+	if selectedPart then
+		selectedPart.Size = Vector3.new(selectedPart.Size.X,val,selectedPart.Size.Z)
+	end
+end)
+createSlider("Scale Z",0.1,20,4,function(val)
+	if selectedPart then
+		selectedPart.Size = Vector3.new(selectedPart.Size.X,selectedPart.Size.Y,val)
+	end
+end)
+
+-- =========================
+-- MOBILE TOUCH BUTTONS (Movement)
+-- =========================
+local mobileButtons = {}
+if touchEnabled then
+	local btnNames = {"Forward","Back","Left","Right","Up","Down"}
+	local directions = {
+		Forward=Vector3.new(0,0,1),
+		Back=Vector3.new(0,0,-1),
+		Left=Vector3.new(-1,0,0),
+		Right=Vector3.new(1,0,0),
+		Up=Vector3.new(0,1,0),
+		Down=Vector3.new(0,-1,0)
+	}
+	for i,name in ipairs(btnNames) do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0,50,0,50)
+		btn.Position = UDim2.new(0,10+(i-1)*55,1,-60)
+		btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+		btn.TextColor3 = Color3.fromRGB(255,255,255)
+		btn.Text = name
+		btn.Font = Enum.Font.Gotham
+		btn.TextSize = 14
+		btn.Parent = screenGui
+
+		btn.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+				moveVector = moveVector + directions[name]
+			end
+		end)
+		btn.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then
+				moveVector = moveVector - directions[name]
+			end
+		end)
+		mobileButtons[name] = btn
+	end
+end
+
+-- =========================
+-- FLY & NOCLIP LOGIC + PART MOVE
+-- =========================
+local velocity = Instance.new("BodyVelocity")
+velocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+velocity.Velocity = Vector3.new(0,0,0)
+
+runService.RenderStepped:Connect(function()
+	-- Noclip
+	for _,part in ipairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = not noclip
+		end
+	end
+
+	-- Fly
+	if flying then
+		humanoid.PlatformStand = true
+		local cam = workspace.CurrentCamera
+		local dir = Vector3.new()
+		if not touchEnabled then
+			if uis:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
+			if uis:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
+			if uis:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
+			if uis:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
+			if uis:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
+			if uis:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0,1,0) end
+		else
+			dir = moveVector
+		end
+		if dir.Magnitude>0 then
+			velocity.Velocity = dir.Unit * flySpeed
+		else
+			velocity.Velocity = Vector3.new(0,0,0)
+		end
+		velocity.Parent = hrp
+	else
+		humanoid.PlatformStand = false
+		velocity.Parent = nil
+		humanoid.WalkSpeed = walkSpeedValue
+		humanoid.JumpPower = jumpPowerValue
+	end
+
+	-- Move selected part
+	if editorMode and selectedPart then
+		local delta = Vector3.new()
+		if uis:IsKeyDown(Enum.KeyCode.Up) then delta = delta + Vector3.new(0,0,-0.5) end
+		if uis:IsKeyDown(Enum.KeyCode.Down) then delta = delta + Vector3.new(0,0,0.5) end
+		if uis:IsKeyDown(Enum.KeyCode.Left) then delta = delta + Vector3.new(-0.5,0,0) end
+		if uis:IsKeyDown(Enum.KeyCode.Right) then delta = delta + Vector3.new(0.5,0,0) end
+		if uis:IsKeyDown(Enum.KeyCode.PageUp) then delta = delta + Vector3.new(0,0.5,0) end
+		if uis:IsKeyDown(Enum.KeyCode.PageDown) then delta = delta + Vector3.new(0,-0.5,0) end
+		selectedPart.CFrame = selectedPart.CFrame + delta
+	end
+end)
+
+-- =========================
+-- KEYBINDS
+-- =========================
+uis.InputBegan:Connect(function(input)
+	if input.KeyCode==Enum.KeyCode.F then flying = not flying end
+	if input.KeyCode==Enum.KeyCode.N then noclip = not noclip end
+	if input.KeyCode==Enum.KeyCode.E then editorMode = not editorMode; selectedPart=nil end
+	if input.KeyCode==Enum.KeyCode.C and editorMode then
+		local part = Instance.new("Part")
+		part.Size = Vector3.new(4,1,4)
+		part.Position = hrp.Position + hrp.CFrame.LookVector*10
+		part.Anchored = true
+		part.Shape = Enum.PartType.Block
+		part.Parent = workspace
+		editorParts[#editorParts+1] = part
+		selectPart(part)
+	end
+	if input.KeyCode==Enum.KeyCode.Delete and selectedPart then
+		selectedPart:Destroy()
+		selectedPart=nil
+	end
+end)
