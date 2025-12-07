@@ -1,4 +1,4 @@
--- Full Mobile-Friendly Admin GUI with Fly, Noclip, Collect/Duplicate, and Vertical Control
+-- Full Mobile-Friendly Admin GUI with Working Fly, Noclip, Collect/Duplicate, Vertical Control
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
@@ -36,20 +36,20 @@ toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.Parent = screenGui
 
 toggleBtn.MouseButton1Click:Connect(function()
-	frame.Visible = not frame.Visible
+    frame.Visible = not frame.Visible
 end)
 
 -- Helper to create buttons
 local function createButton(name,posYScale)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0.9,0,0.12,0)
-	btn.Position = UDim2.new(0.05,0,posYScale,0)
-	btn.Text = name
-	btn.TextScaled = true
-	btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-	btn.TextColor3 = Color3.fromRGB(255,255,255)
-	btn.Parent = frame
-	return btn
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9,0,0.12,0)
+    btn.Position = UDim2.new(0.05,0,posYScale,0)
+    btn.Text = name
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Parent = frame
+    return btn
 end
 
 -- Buttons
@@ -81,62 +81,71 @@ jpInput.Parent = frame
 local flying = false
 local noclipping = false
 local flySpeed = 50
-local flyVelocity = Vector3.zero
 local moveDown = false
+local bv -- BodyVelocity
 
 -- =========================
 -- BUTTON FUNCTIONS
 -- =========================
 flyBtn.MouseButton1Click:Connect(function()
-	flying = not flying
-	flyBtn.Text = "Fly: "..(flying and "ON" or "OFF")
-	humanoid.PlatformStand = flying
-	if not flying then flyVelocity = Vector3.zero end
+    flying = not flying
+    flyBtn.Text = "Fly: "..(flying and "ON" or "OFF")
+    humanoid.PlatformStand = flying
+
+    if flying then
+        -- Create BodyVelocity for smooth flying
+        bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bv.Velocity = Vector3.zero
+        bv.P = 1250
+        bv.Parent = hrp
+    else
+        if bv then
+            bv:Destroy()
+            bv = nil
+        end
+    end
 end)
 
 noclipBtn.MouseButton1Click:Connect(function()
-	noclipping = not noclipping
-	noclipBtn.Text = "Noclip: "..(noclipping and "ON" or "OFF")
+    noclipping = not noclipping
+    noclipBtn.Text = "Noclip: "..(noclipping and "ON" or "OFF")
 end)
 
 wsBtn.MouseButton1Click:Connect(function()
-	local val = tonumber(wsInput.Text)
-	if val then humanoid.WalkSpeed = val end
+    local val = tonumber(wsInput.Text)
+    if val then humanoid.WalkSpeed = val end
 end)
 
 jpBtn.MouseButton1Click:Connect(function()
-	local val = tonumber(jpInput.Text)
-	if val then humanoid.JumpPower = val end
+    local val = tonumber(jpInput.Text)
+    if val then humanoid.JumpPower = val end
 end)
 
 collectBtn.MouseButton1Click:Connect(function()
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and (obj.Name:match("Wood") or obj.Name:match("Log")) then
-			obj.CFrame = hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3))
-		elseif obj:IsA("Model") and (obj.Name:match("Wood") or obj.Name:match("Log")) then
-			local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-			if primary then
-				obj:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3)))
-			end
-		end
-	end
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Name:match("Wood") or obj.Name:match("Log")) then
+            obj.CFrame = hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3))
+        elseif obj:IsA("Model") and (obj.Name:match("Wood") or obj.Name:match("Log")) then
+            local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+            if primary then obj:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3))) end
+        end
+    end
 end)
 
 duplicateBtn.MouseButton1Click:Connect(function()
-	for _, obj in ipairs(workspace:GetDescendants()) do
-		if (obj.Name:match("Wood") or obj.Name:match("Log")) and (obj:IsA("BasePart") or obj:IsA("Model")) then
-			local clone = obj:Clone()
-			clone.Parent = workspace
-			if clone:IsA("BasePart") then
-				clone.CFrame = hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3))
-			elseif clone:IsA("Model") then
-				local primary = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart")
-				if primary then
-					clone:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3)))
-				end
-			end
-		end
-	end
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if (obj.Name:match("Wood") or obj.Name:match("Log")) and (obj:IsA("BasePart") or obj:IsA("Model")) then
+            local clone = obj:Clone()
+            clone.Parent = workspace
+            if clone:IsA("BasePart") then
+                clone.CFrame = hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3))
+            elseif clone:IsA("Model") then
+                local primary = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart")
+                if primary then clone:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(math.random(-3,3),2,math.random(-3,3))) end
+            end
+        end
+    end
 end)
 
 -- =========================
@@ -160,25 +169,26 @@ downBtn.TouchEnded:Connect(function() moveDown = false end)
 -- MAIN LOOP
 -- =========================
 runService.RenderStepped:Connect(function(dt)
-	-- Fly with mobile joystick
-	if flying then
-		local moveDir = humanoid.MoveDirection
-		local camCF = cam.CFrame
-		local dir = Vector3.new(moveDir.X * camCF.RightVector.X + moveDir.Z * camCF.LookVector.X, 0, moveDir.X * camCF.RightVector.Z + moveDir.Z * camCF.LookVector.Z)
+    -- Fly with mobile joystick
+    if flying and bv then
+        local moveDir = humanoid.MoveDirection
+        local camCF = cam.CFrame
+        local dir = Vector3.new(moveDir.X * camCF.RightVector.X + moveDir.Z * camCF.LookVector.X, 0, moveDir.X * camCF.RightVector.Z + moveDir.Z * camCF.LookVector.Z)
 
-		-- Vertical control
-		if humanoid.Jump then dir += Vector3.new(0, flySpeed/2, 0) end
-		if moveDown then dir -= Vector3.new(0, flySpeed/2, 0) end
+        -- Vertical control
+        if humanoid.Jump then dir += Vector3.new(0, flySpeed/2, 0) end
+        if moveDown then dir -= Vector3.new(0, flySpeed/2, 0) end
 
-		if dir.Magnitude > 0 then dir = dir.Unit * flySpeed end
-		flyVelocity = flyVelocity:Lerp(dir,0.2)
-		hrp.Velocity = flyVelocity
-	end
+        if dir.Magnitude > 0 then dir = dir.Unit * flySpeed end
+        bv.Velocity = dir
+    end
 
-	-- Noclip
-	if noclipping then
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") then part.CanCollide = false end
-		end
-	end
+    -- Noclip
+    if noclipping then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
 end)
