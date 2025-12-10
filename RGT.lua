@@ -1,4 +1,4 @@
--- Ultimate Admin UI - Fully Scrollable, Mobile-Friendly, Draggable
+-- Ultimate Admin UI - Fully Mobile, Scrollable, Draggable, Get/Spawn Items
 
 local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
@@ -41,9 +41,9 @@ title.Font = Enum.Font.SourceSansBold
 title.TextSize = 24
 title.Parent = mainFrame
 
--- Scrollable content (below title)
+-- Scrollable content
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1,-10,1,-60) -- subtract title height
+scrollFrame.Size = UDim2.new(1,-10,1,-60)
 scrollFrame.Position = UDim2.new(0,5,0,50)
 scrollFrame.ScrollBarThickness = 10
 scrollFrame.Parent = mainFrame
@@ -181,37 +181,56 @@ createButton("Move Object", function()
     end
 end)
 
--- Advanced spawn system
-local itemBox = createTextBox("Item name to spawn/give")
+-- Item system
+local itemBox = createTextBox("Item name to get/spawn")
+
+-- Recursive search function
+local function findItemByName(name)
+    name = name:lower()
+    local function search(root)
+        for _, obj in ipairs(root:GetDescendants()) do
+            if obj:IsA("Tool") or obj:IsA("Model") or obj:IsA("Part") then
+                if obj.Name:lower() == name then
+                    return obj
+                end
+            end
+        end
+    end
+    return search(WS) or search(RS)
+end
+
+-- Spawn at player
 createButton("Spawn at Player", function()
-    local name = itemBox.Text:lower()
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+    local name = itemBox.Text
     if name == "" then return end
-    local function findItem(root)
-        for _,obj in ipairs(root:GetDescendants()) do
-            if obj.Name:lower() == name then return obj end
-        end
-    end
-    local found = findItem(WS) or findItem(RS)
-    if found and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local clone = found:Clone()
+
+    local item = findItemByName(name)
+    if item then
+        local clone = item:Clone()
         clone.Parent = WS
-        clone.Position = player.Character.HumanoidRootPart.Position + Vector3.new(0,5,0)
-    end
-end)
-
-createButton("Give to Backpack", function()
-    local name = itemBox.Text:lower()
-    if name == "" then return end
-    local function findItem(root)
-        for _,obj in ipairs(root:GetDescendants()) do
-            if obj.Name:lower() == name then return obj end
+        if clone:IsA("Model") and clone.PrimaryPart then
+            clone:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame * CFrame.new(0,5,0))
+        elseif clone:IsA("BasePart") then
+            clone.Position = player.Character.HumanoidRootPart.Position + Vector3.new(0,5,0)
         end
-    end
-    local found = findItem(WS) or findItem(RS)
-    if found then
-        local clone = found:Clone()
-        clone.Parent = player:WaitForChild("Backpack")
+    else
+        warn("Item not found: "..name)
     end
 end)
 
-print("Ultimate Admin UI loaded - Fully Scrollable, Mobile-Friendly, Draggable!")
+-- Give to backpack
+createButton("Give to Backpack", function()
+    local name = itemBox.Text
+    if name == "" then return end
+
+    local item = findItemByName(name)
+    if item then
+        local clone = item:Clone()
+        clone.Parent = player:WaitForChild("Backpack")
+    else
+        warn("Item not found: "..name)
+    end
+end)
+
+print("Ultimate Admin UI loaded - Fully Scrollable, Mobile-Friendly, Draggable, Get/Spawn Items!")
