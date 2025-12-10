@@ -1,4 +1,4 @@
--- Ultimate Admin UI - Fully Mobile, Scrollable, Draggable
+-- Ultimate Admin UI - Fully Scrollable, Mobile-Friendly, Draggable
 
 local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
@@ -13,8 +13,8 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 
 -- Open/close button
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0.3, 0, 0.08, 0)
-toggleBtn.Position = UDim2.new(0.35, 0, 0.01, 0)
+toggleBtn.Size = UDim2.new(0.3,0,0.08,0)
+toggleBtn.Position = UDim2.new(0.35,0,0.01,0)
 toggleBtn.Text = "Open Admin UI"
 toggleBtn.Font = Enum.Font.SourceSansBold
 toggleBtn.TextSize = 22
@@ -31,23 +31,6 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
 mainFrame.Parent = screenGui
 
--- Scrollable content
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1,-10,1,-10)
-scrollFrame.Position = UDim2.new(0,5,0,5)
-scrollFrame.ScrollBarThickness = 10
-scrollFrame.Parent = mainFrame
-
-local layout = Instance.new("UIListLayout")
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0,10)
-layout.Parent = scrollFrame
-
--- Auto-update canvas size for scroll
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
-end)
-
 -- Title bar (draggable)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,50)
@@ -56,7 +39,24 @@ title.Text = "Ultimate Admin UI"
 title.TextColor3 = Color3.fromRGB(255,255,255)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 24
-title.Parent = scrollFrame
+title.Parent = mainFrame
+
+-- Scrollable content (below title)
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1,-10,1,-60) -- subtract title height
+scrollFrame.Position = UDim2.new(0,5,0,50)
+scrollFrame.ScrollBarThickness = 10
+scrollFrame.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0,10)
+layout.Parent = scrollFrame
+
+-- Auto-update canvas size
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
+end)
 
 -- Toggle open/close
 toggleBtn.MouseButton1Click:Connect(function()
@@ -214,4 +214,4 @@ createButton("Give to Backpack", function()
     end
 end)
 
-print("Ultimate Admin UI loaded - Fully Mobile, Scrollable, Draggable!")
+print("Ultimate Admin UI loaded - Fully Scrollable, Mobile-Friendly, Draggable!")
