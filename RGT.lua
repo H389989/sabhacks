@@ -1,4 +1,4 @@
--- Ultimate Admin UI - Fully Mobile, Scrollable, Draggable, Get/Spawn Items
+-- Ultimate Admin UI - Fully Mobile, Scrollable, Draggable, Get/Spawn Items, Walk/Jump Adjust
 
 local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
@@ -129,12 +129,21 @@ local function createButton(text, callback)
     return btn
 end
 
--- Walkspeed
-local walkspeedBox = createTextBox("Enter Walkspeed")
-createButton("Set Walkspeed", function()
+-- WalkSpeed adjuster
+local walkspeedBox = createTextBox("Enter WalkSpeed")
+createButton("Set WalkSpeed", function()
     local speed = tonumber(walkspeedBox.Text)
     if speed and player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = speed
+    end
+end)
+
+-- JumpPower adjuster
+local jumpBox = createTextBox("Enter JumpPower")
+createButton("Set JumpPower", function()
+    local jp = tonumber(jumpBox.Text)
+    if jp and player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = jp
     end
 end)
 
@@ -233,4 +242,4 @@ createButton("Give to Backpack", function()
     end
 end)
 
-print("Ultimate Admin UI loaded - Fully Scrollable, Mobile-Friendly, Draggable, Get/Spawn Items!")
+print("Ultimate Admin UI loaded - Fully Scrollable, Mobile-Friendly, Draggable, Walk/Jump Adjust, Item System!")
