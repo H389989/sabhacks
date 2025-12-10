@@ -1,4 +1,4 @@
--- Ultimate Admin UI - Fully Mobile Support
+-- Ultimate Admin UI - Fully Mobile, Scrollable, Draggable
 
 local player = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
@@ -11,7 +11,7 @@ screenGui.Name = "UltimateAdminUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Open/close button (mobile-friendly)
+-- Open/close button
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0.3, 0, 0.08, 0)
 toggleBtn.Position = UDim2.new(0.35, 0, 0.01, 0)
@@ -22,29 +22,33 @@ toggleBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.Parent = screenGui
 
--- Main frame with scrolling
+-- Main frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0.8, 0, 0.8, 0)
+mainFrame.Size = UDim2.new(0.8,0,0.8,0)
 mainFrame.Position = UDim2.new(0.1,0,0.1,0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
 mainFrame.Parent = screenGui
 
+-- Scrollable content
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -10, 1, -10)
+scrollFrame.Size = UDim2.new(1,-10,1,-10)
 scrollFrame.Position = UDim2.new(0,5,0,5)
-scrollFrame.CanvasSize = UDim2.new(0,0,5,0) -- initially large enough
 scrollFrame.ScrollBarThickness = 10
 scrollFrame.Parent = mainFrame
 
--- UIListLayout for easy button stacking
 local layout = Instance.new("UIListLayout")
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0,10)
 layout.Parent = scrollFrame
 
--- Title
+-- Auto-update canvas size for scroll
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Title bar (draggable)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,50)
 title.BackgroundColor3 = Color3.fromRGB(20,20,20)
@@ -59,10 +63,49 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Helper: create TextBox
+-- Dragging functionality (title bar only)
+local dragging = false
+local dragInput, mousePos, framePos
+
+local function update(input)
+    local delta = input.Position - mousePos
+    mainFrame.Position = UDim2.new(
+        0,
+        framePos.X + delta.X,
+        0,
+        framePos.Y + delta.Y
+    )
+end
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Helper functions
 local function createTextBox(placeholder)
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, -20, 0, 40)
+    box.Size = UDim2.new(1,-20,0,40)
     box.BackgroundColor3 = Color3.fromRGB(50,50,50)
     box.TextColor3 = Color3.fromRGB(255,255,255)
     box.Font = Enum.Font.SourceSans
@@ -73,10 +116,9 @@ local function createTextBox(placeholder)
     return box
 end
 
--- Helper: create button
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Size = UDim2.new(1,-20,0,40)
     btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.SourceSans
@@ -139,9 +181,8 @@ createButton("Move Object", function()
     end
 end)
 
--- Spawn system
+-- Advanced spawn system
 local itemBox = createTextBox("Item name to spawn/give")
-
 createButton("Spawn at Player", function()
     local name = itemBox.Text:lower()
     if name == "" then return end
@@ -173,4 +214,4 @@ createButton("Give to Backpack", function()
     end
 end)
 
-print("Ultimate Admin UI loaded - Fully Mobile Support!")
+print("Ultimate Admin UI loaded - Fully Mobile, Scrollable, Draggable!")
