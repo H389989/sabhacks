@@ -10,13 +10,31 @@ screenGui.Name = "AdminMenu"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame
+-- OPEN MENU BUTTON (visible on screen)
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 130, 0, 50)
+openButton.Position = UDim2.new(0, 20, 0.8, 0) -- bottom-left of screen
+openButton.Text = "ADMIN MENU"
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 22
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 10)
+openCorner.Parent = openButton
+
+------------------------------------------------------
+-- MAIN FRAME (hidden initially)
+------------------------------------------------------
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 300, 0, 240)
 frame.Position = UDim2.new(0.5, -150, 0.5, -120)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.Active = true
 frame.Draggable = true
+frame.Visible = false -- start hidden
 frame.Parent = screenGui
 
 local frameCorner = Instance.new("UICorner")
@@ -78,7 +96,7 @@ switchButtonCorner.CornerRadius = UDim.new(0, 10)
 switchButtonCorner.Parent = switchButton
 
 ------------------------------------------------------
--- TEAM SWITCH FUNCTION (Fully Client-Side Method)
+-- TEAM SWITCH FUNCTION (CLIENT ONLY)
 ------------------------------------------------------
 local function switchTeam(teamName)
     if teamName == "" then
@@ -92,26 +110,29 @@ local function switchTeam(teamName)
         return
     end
 
-    -- Disable ALL teams so you don't join the wrong one
+    -- Disable all teams
     for _, t in ipairs(Teams:GetChildren()) do
         t.AutoAssignable = false
     end
 
-    -- Enable the team you want
+    -- Enable chosen team
     team.AutoAssignable = true
 
-    -- Respawn your character (forces team switch)
+    -- Reload character to apply team
     player:LoadCharacter()
 
     task.wait(0.1)
 
-    -- Turn autoassign off again
+    -- Disable again
     team.AutoAssignable = false
 end
 
-------------------------------------------------------
--- BUTTON CLICK
-------------------------------------------------------
+-- Button click
 switchButton.MouseButton1Click:Connect(function()
     switchTeam(teamBox.Text)
+end)
+
+-- OPEN BUTTON CLICK
+openButton.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
 end)
