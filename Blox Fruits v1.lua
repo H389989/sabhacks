@@ -1,6 +1,7 @@
 --// LocalScript inside StarterPlayerScripts
 
 local player = game.Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
 
 --// CREATE GUI
 local screenGui = Instance.new("ScreenGui")
@@ -43,6 +44,7 @@ closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.ZIndex = 5
 closeButton.Parent = mainFrame
 
+--// TOGGLE MENU
 openButton.MouseButton1Click:Connect(function()
 	mainFrame.Visible = not mainFrame.Visible
 end)
@@ -53,11 +55,9 @@ end)
 
 --// GIVE ALL ITEMS TO BACKPACK
 spawnButton.MouseButton1Click:Connect(function()
-	local backpack = player:WaitForChild("Backpack")
-
 	for _, obj in ipairs(game:GetDescendants()) do
 
-		-- Case 1: Real tool with Handle
+		-- Case 1: Real Tool with Handle
 		if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
 			local clone = obj:Clone()
 			clone.Parent = backpack
@@ -71,14 +71,18 @@ spawnButton.MouseButton1Click:Connect(function()
 			local cloneModel = obj:Clone()
 			local handle = cloneModel:FindFirstChild("Handle")
 			handle.Parent = tool
+			handle.Anchored = false
+			handle.CanCollide = false
 
 			for _, part in ipairs(cloneModel:GetDescendants()) do
 				if part:IsA("BasePart") and part ~= handle then
 					part.Parent = tool
+					part.Anchored = false
+					part.CanCollide = false
 					local weld = Instance.new("WeldConstraint")
 					weld.Part0 = handle
 					weld.Part1 = part
-					weld.Parent = tool -- FIXED: weld parent is the Tool, not the Handle
+					weld.Parent = tool
 				end
 			end
 
