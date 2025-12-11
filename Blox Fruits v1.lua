@@ -51,18 +51,18 @@ closeButton.MouseButton1Click:Connect(function()
 	mainFrame.Visible = false
 end)
 
-
---// FIXED: GIVE ANY ITEM (TOOL OR MODEL) TO BACKPACK
+--// GIVE ALL ITEMS TO BACKPACK
 spawnButton.MouseButton1Click:Connect(function()
 	local backpack = player:WaitForChild("Backpack")
 
 	for _, obj in ipairs(game:GetDescendants()) do
-		
-		-- Case 1: Real tool
-		if obj:IsA("Tool") then
-			obj:Clone().Parent = backpack
-		
-		-- Case 2: It's a model with a Handle
+
+		-- Case 1: Real tool with Handle
+		if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
+			local clone = obj:Clone()
+			clone.Parent = backpack
+
+		-- Case 2: Model with Handle → convert to Tool
 		elseif obj:IsA("Model") and obj:FindFirstChild("Handle") then
 			local tool = Instance.new("Tool")
 			tool.Name = obj.Name
@@ -70,18 +70,15 @@ spawnButton.MouseButton1Click:Connect(function()
 
 			local cloneModel = obj:Clone()
 			local handle = cloneModel:FindFirstChild("Handle")
-			
-			-- Move the handle into the tool
 			handle.Parent = tool
 
-			-- Move all other parts into the tool (and weld them)
 			for _, part in ipairs(cloneModel:GetDescendants()) do
 				if part:IsA("BasePart") and part ~= handle then
 					part.Parent = tool
 					local weld = Instance.new("WeldConstraint")
 					weld.Part0 = handle
 					weld.Part1 = part
-					weld.Parent = handle
+					weld.Parent = tool -- FIXED: weld parent is the Tool, not the Handle
 				end
 			end
 
