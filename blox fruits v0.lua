@@ -10,17 +10,38 @@ screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 
---// Create the button
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 250, 0, 60) -- make it big enough to see
-button.Position = UDim2.new(0.5, -125, 0.5, -30) -- center of the screen
-button.Text = "Give Me Everything!"
-button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.TextScaled = true
-button.AnchorPoint = Vector2.new(0.5, 0.5) -- properly center
-button.Parent = screenGui
-button.ZIndex = 10 -- make sure it's on top
+--// Frame to hold the main button
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 250, 0, 80)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -40)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+mainFrame.BackgroundTransparency = 0.5
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Visible = false -- hidden by default
+mainFrame.Parent = screenGui
+mainFrame.ZIndex = 10
+
+--// Main "Give All Items" Button
+local giveButton = Instance.new("TextButton")
+giveButton.Size = UDim2.new(1, -20, 1, -20)
+giveButton.Position = UDim2.new(0, 10, 0, 10)
+giveButton.Text = "Give Me Everything!"
+giveButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+giveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+giveButton.TextScaled = true
+giveButton.Parent = mainFrame
+
+--// Toggle Button to open/close GUI
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 120, 0, 40)
+toggleButton.Position = UDim2.new(0.5, -60, 0.9, -20) -- bottom center
+toggleButton.Text = "Open GUI"
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 85)
+toggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+toggleButton.TextScaled = true
+toggleButton.AnchorPoint = Vector2.new(0.5, 0.5)
+toggleButton.Parent = screenGui
+toggleButton.ZIndex = 10
 
 --// Paths to search for items
 local searchLocations = {
@@ -46,5 +67,11 @@ local function giveAllItems()
     print("All items given! Total items:", count)
 end
 
---// Button click
-button.MouseButton1Click:Connect(giveAllItems)
+--// Connect button click
+giveButton.MouseButton1Click:Connect(giveAllItems)
+
+--// Connect toggle button
+toggleButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+    toggleButton.Text = mainFrame.Visible and "Close GUI" or "Open GUI"
+end)
