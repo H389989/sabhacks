@@ -1,175 +1,115 @@
---// LocalScript
---// Place in StarterPlayer > StarterPlayerScripts
---// CLIENT-SIDE TOOL (LocalPlayer ONLY)
---// - Finds ANY value/label related to Cash or Beli
---// - Lets you EDIT them LOCALLY (visual/client values)
---// - Button to remove CLIENT-SIDE cooldowns across the game
+--// LocalScript inside StarterPlayerScripts
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
--------------------------------------------------
--- KEYWORDS
--------------------------------------------------
-local MONEY_KEYS = {"cash", "beli", "money", "coins", "gold", "currency", "$"}
-local COOLDOWN_KEYS = {"cool", "cd", "delay", "wait"}
+--// GUI Creation
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MobileControlGui"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
 
-local function hasKey(str, keys)
-	if not str then return false end
-	str = tostring(str):lower()
-	for _, k in ipairs(keys) do
-		if string.find(str, k) then
-			return true
-		end
-	end
-	return false
+--// Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0.8, 0, 0.6, 0)
+mainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.BorderSizePixel = 0
+mainFrame.AnchorPoint = Vector2.new(0, 0)
+mainFrame.Parent = screenGui
+
+--// UI Layout
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = mainFrame
+uiListLayout.FillDirection = Enum.FillDirection.Vertical
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 10)
+
+--// Utility function to create buttons
+local function createButton(name, text, callback)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Text = text
+    button.Size = UDim2.new(1, -20, 0, 60)
+    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.SourceSansBold
+    button.TextScaled = true
+    button.BorderSizePixel = 0
+    button.Parent = mainFrame
+    button.MouseButton1Click:Connect(callback)
 end
 
--------------------------------------------------
--- CREATE CONTROL GUI (ALWAYS SHOWS)
--------------------------------------------------
-local old = PlayerGui:FindFirstChild("LocalMoneyControlGui")
-if old then old:Destroy() end
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "LocalMoneyControlGui"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = PlayerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 220)
-frame.Position = UDim2.new(0, 20, 0.5, -110)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BorderSizePixel = 0
-frame.ZIndex = 10
-frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -20, 0, 32)
-title.Position = UDim2.new(0, 10, 0, 8)
-title.BackgroundTransparency = 1
-title.Text = "Local Cash / Beli Editor"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextScaled = true
-title.Parent = frame
-
--------------------------------------------------
--- MONEY INPUT
--------------------------------------------------
-local box = Instance.new("TextBox")
-box.Size = UDim2.new(1, -20, 0, 36)
-box.Position = UDim2.new(0, 10, 0, 52)
-box.PlaceholderText = "Enter amount (LOCAL)"
-box.Text = ""
-box.TextScaled = true
-box.ClearTextOnFocus = false
-box.BackgroundColor3 = Color3.fromRGB(45,45,45)
-box.TextColor3 = Color3.new(1,1,1)
-box.Parent = frame
-Instance.new("UICorner", box).CornerRadius = UDim.new(0,10)
-
-local applyBtn = Instance.new("TextButton")
-applyBtn.Size = UDim2.new(1, -20, 0, 36)
-applyBtn.Position = UDim2.new(0, 10, 0, 96)
-applyBtn.Text = "Apply Cash / Beli (LOCAL)"
-applyBtn.TextScaled = true
-applyBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
-applyBtn.TextColor3 = Color3.new(1,1,1)
-applyBtn.Parent = frame
-Instance.new("UICorner", applyBtn).CornerRadius = UDim.new(0,10)
-
--------------------------------------------------
--- COOLDOWN BUTTON
--------------------------------------------------
-local cdBtn = Instance.new("TextButton")
-cdBtn.Size = UDim2.new(1, -20, 0, 36)
-cdBtn.Position = UDim2.new(0, 10, 0, 140)
-cdBtn.Text = "Disable ALL Cooldowns (LOCAL)"
-cdBtn.TextScaled = true
-cdBtn.BackgroundColor3 = Color3.fromRGB(80,40,40)
-cdBtn.TextColor3 = Color3.new(1,1,1)
-cdBtn.Parent = frame
-Instance.new("UICorner", cdBtn).CornerRadius = UDim.new(0,10)
-
-local info = Instance.new("TextLabel")
-info.Size = UDim2.new(1, -20, 0, 28)
-info.Position = UDim2.new(0, 10, 1, -32)
-info.BackgroundTransparency = 1
-info.Text = "Client-side only"
-info.TextColor3 = Color3.fromRGB(180,180,180)
-info.TextScaled = true
-info.Parent = frame
-
--------------------------------------------------
--- FIND & EDIT MONEY (LOCAL)
--------------------------------------------------
-local function applyLocalMoney(value)
-	for _, obj in ipairs(PlayerGui:GetDescendants()) do
-		if obj:IsA("TextLabel") or obj:IsA("TextButton") then
-			if hasKey(obj.Name, MONEY_KEYS) or hasKey(obj.Text, MONEY_KEYS) then
-				obj.Text = tostring(value)
-			end
-		end
-	end
-
-	for _, obj in ipairs(player:GetDescendants()) do
-		if obj:IsA("NumberValue") or obj:IsA("IntValue") then
-			if hasKey(obj.Name, MONEY_KEYS) then
-				obj.Value = tonumber(value) or obj.Value
-			end
-		end
-	end
-end
-
-applyBtn.MouseButton1Click:Connect(function()
-	if box.Text ~= "" then
-		applyLocalMoney(box.Text)
-	end
+--// WalkSpeed Buttons
+createButton("WalkSpeed50", "WalkSpeed 50", function()
+    humanoid.WalkSpeed = 50
+end)
+createButton("WalkSpeed100", "WalkSpeed 100", function()
+    humanoid.WalkSpeed = 100
+end)
+createButton("WalkSpeedReset", "Reset WalkSpeed", function()
+    humanoid.WalkSpeed = 16
 end)
 
--------------------------------------------------
--- REMOVE COOLDOWNS (CLIENT SIDE ONLY)
--------------------------------------------------
-local function clearCooldowns(container)
-	for _, obj in ipairs(container:GetDescendants()) do
-		if obj:IsA("NumberValue") and hasKey(obj.Name, COOLDOWN_KEYS) then
-			obj.Value = 0
-		end
-		if obj:IsA("BoolValue") and hasKey(obj.Name, COOLDOWN_KEYS) then
-			obj.Value = false
-		end
-	end
-end
-
-local noCooldowns = false
-
-local function disableCooldowns()
-	noCooldowns = true
-	player:SetAttribute("NoCooldown", true)
-	clearCooldowns(player)
-	clearCooldowns(PlayerGui)
-	if player.Character then clearCooldowns(player.Character) end
-	cdBtn.Text = "Cooldowns Disabled (LOCAL)"
-	cdBtn.BackgroundColor3 = Color3.fromRGB(40,100,40)
-end
-
-cdBtn.MouseButton1Click:Connect(disableCooldowns)
-
-player.CharacterAdded:Connect(function()
-	if noCooldowns then
-		task.wait(0.3)
-		disableCooldowns()
-	end
+--// JumpPower Buttons
+createButton("JumpPower50", "JumpPower 50", function()
+    humanoid.JumpPower = 50
+end)
+createButton("JumpPower100", "JumpPower 100", function()
+    humanoid.JumpPower = 100
+end)
+createButton("JumpPowerReset", "Reset JumpPower", function()
+    humanoid.JumpPower = 50
 end)
 
--------------------------------------------------
--- IMPORTANT
--------------------------------------------------
--- • This CANNOT bypass server-side checks
--- • Only affects what the LOCAL client sees/uses
--- • If your game enforces cooldowns on the server,
---   this will NOT override them
+--// Flight Toggle
+local flying = false
+local flightSpeed = 50
+local flightBody
+
+createButton("ToggleFlight", "Toggle Flight", function()
+    flying = not flying
+    if flying then
+        flightBody = Instance.new("BodyVelocity")
+        flightBody.MaxForce = Vector3.new(1e5,1e5,1e5)
+        flightBody.Velocity = Vector3.new(0,0,0)
+        flightBody.Parent = character:FindFirstChild("HumanoidRootPart")
+    else
+        if flightBody then
+            flightBody:Destroy()
+        end
+    end
+end)
+
+--// Flight Controls
+createButton("FlightUp", "Fly Up", function()
+    if flying and flightBody then
+        flightBody.Velocity = Vector3.new(0, flightSpeed, 0)
+    end
+end)
+
+createButton("FlightDown", "Fly Down", function()
+    if flying and flightBody then
+        flightBody.Velocity = Vector3.new(0, -flightSpeed, 0)
+    end
+end)
+
+createButton("FlightForward", "Fly Forward", function()
+    if flying and flightBody then
+        local root = character:FindFirstChild("HumanoidRootPart")
+        flightBody.Velocity = root.CFrame.LookVector * flightSpeed
+    end
+end)
+
+--// Reset Flight
+createButton("FlightReset", "Stop Flight", function()
+    if flightBody then
+        flightBody.Velocity = Vector3.new(0,0,0)
+    end
+end)
+
+--// Mobile-friendly note
+screenGui.DisplayOrder = 10
