@@ -8,21 +8,26 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "GiveAllItemsGUI"
 screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
 
+--// Create the button
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0.5, -25)
+button.Size = UDim2.new(0, 250, 0, 60) -- make it big enough to see
+button.Position = UDim2.new(0.5, -125, 0.5, -30) -- center of the screen
 button.Text = "Give Me Everything!"
 button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.TextScaled = true
+button.AnchorPoint = Vector2.new(0.5, 0.5) -- properly center
 button.Parent = screenGui
+button.ZIndex = 10 -- make sure it's on top
 
 --// Paths to search for items
 local searchLocations = {
     game:GetService("ReplicatedStorage"),
-    game:GetService("ServerStorage"),
+    game:GetService("Workspace"),
     game:GetService("StarterPack"),
-    game:GetService("Workspace"), -- sometimes items are parented directly here
+    game:GetService("ServerStorage"),
     game:GetService("ServerScriptService")
 }
 
