@@ -1,57 +1,114 @@
--- LocalScript in StarterPlayerScripts
+-- FPS LOCK + MOBILE UI (LocalScript)
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
 
--- GUI CREATION
+-------------------------------------------------
+-- UI SETUP
+-------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "FPSGlobalChanger"
+gui.Name = "FPSLocker"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = PlayerGui
+
+local scale = Instance.new("UIScale")
+scale.Scale = 1
+scale.Parent = gui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.25, 0.22)
-frame.Position = UDim2.fromScale(0.375, 0.39)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Size = UDim2.fromScale(0.85, 0.35)
+frame.Position = UDim2.fromScale(0.075, 0.33)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Visible = true
 frame.Parent = gui
+frame.Active = true
+frame.Draggable = true
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,16)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.fromScale(1,0.25)
+title.BackgroundTransparency = 1
+title.Text = "FPS LOCK"
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.new(1,1,1)
+title.Parent = frame
 
 local box = Instance.new("TextBox")
-box.Size = UDim2.fromScale(0.9, 0.28)
-box.Position = UDim2.fromScale(0.05, 0.2)
+box.Size = UDim2.fromScale(0.9,0.25)
+box.Position = UDim2.fromScale(0.05,0.3)
 box.PlaceholderText = "Enter FPS"
 box.Text = ""
 box.TextScaled = true
-box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+box.Font = Enum.Font.Gotham
+box.BackgroundColor3 = Color3.fromRGB(40,40,40)
 box.TextColor3 = Color3.new(1,1,1)
 box.Parent = frame
-Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", box).CornerRadius = UDim.new(0,12)
 
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.fromScale(0.9, 0.28)
-btn.Position = UDim2.fromScale(0.05, 0.58)
-btn.Text = "Give FPS"
-btn.TextScaled = true
-btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-btn.TextColor3 = Color3.new(1,1,1)
-btn.Parent = frame
-Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+local button = Instance.new("TextButton")
+button.Size = UDim2.fromScale(0.9,0.25)
+button.Position = UDim2.fromScale(0.05,0.62)
+button.Text = "LOCK FPS"
+button.TextScaled = true
+button.Font = Enum.Font.GothamBold
+button.BackgroundColor3 = Color3.fromRGB(0,170,255)
+button.TextColor3 = Color3.new(1,1,1)
+button.Parent = frame
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,12)
 
--- 🔥 GLOBAL SEARCH FUNCTION
-local function applyFPS(value)
-	for _, inst in ipairs(game:GetDescendants()) do
-		if inst:IsA("TextLabel") then
-			-- Strict match for "FPS: <number>"
-			local prefix = inst.Text:match("^FPS%s*:%s*")
-			if prefix then
-				inst.Text = prefix .. tostring(value)
-			end
+-- Toggle button
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.fromScale(0.18,0.08)
+toggle.Position = UDim2.fromScale(0.02,0.02)
+toggle.Text = "FPS"
+toggle.TextScaled = true
+toggle.Font = Enum.Font.GothamBold
+toggle.BackgroundColor3 = Color3.fromRGB(0,170,255)
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.Parent = gui
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,20)
+
+toggle.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+-------------------------------------------------
+-- FPS LOCK LOGIC
+-------------------------------------------------
+local lockedFPS = nil
+local connections = {}
+
+local function lockLabel(label)
+	if connections[label] then return end
+
+	connections[label] = label:GetPropertyChangedSignal("Text"):Connect(function()
+		if lockedFPS and label.Text:match("^FPS%s*:") then
+			label.Text = "FPS: " .. lockedFPS
+		end
+	end)
+
+	label.Text = "FPS: " .. lockedFPS
+end
+
+local function scanAndLock()
+	for _, obj in ipairs(game:GetDescendants()) do
+		if obj:IsA("TextLabel") and obj.Text:match("^FPS%s*:") then
+			lockLabel(obj)
 		end
 	end
 end
 
-btn.MouseButton1Click:Connect(function()
+-- Detect NEW labels added later
+game.DescendantAdded:Connect(function(obj)
+	if lockedFPS and obj:IsA("TextLabel") and obj.Text:match("^FPS%s*:") then
+		lockLabel(obj)
+	end
+end)
+
+button.MouseButton1Click:Connect(function()
 	local fps = tonumber(box.Text)
 	if not fps then
 		box.Text = "Invalid"
@@ -61,5 +118,21 @@ btn.MouseButton1Click:Connect(function()
 		return
 	end
 
-	applyFPS(fps)
+	lockedFPS = fps
+	scanAndLock()
 end)
+
+-------------------------------------------------
+-- MOBILE AUTO SCALE
+-------------------------------------------------
+local cam = workspace.CurrentCamera
+local function updateScale()
+	if cam.ViewportSize.X < 700 then
+		scale.Scale = 0.9
+	else
+		scale.Scale = 1
+	end
+end
+
+cam:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+updateScale()
