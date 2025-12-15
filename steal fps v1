@@ -1,0 +1,173 @@
+--[[
+📱 MOBILE-FRIENDLY ADMIN GUI (StarterPlayerScript / LocalScript)
+Features:
+- Open / Close button
+- WalkSpeed changer
+- Fly toggle
+- Kill Radius toggle + size
+- Touch-friendly UI
+
+⚠️ Place this as a LocalScript in StarterPlayer ▸ StarterPlayerScripts
+]]
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- Character loader
+local function getChar()
+    local char = player.Character or player.CharacterAdded:Wait()
+    return char, char:WaitForChild("Humanoid"), char:WaitForChild("HumanoidRootPart")
+end
+
+-- GUI setup
+local gui = Instance.new("ScreenGui")
+gui.Name = "MobileAdminGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Open Button
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.fromScale(0.2, 0.07)
+openBtn.Position = UDim2.fromScale(0.02, 0.45)
+openBtn.Text = "☰"
+openBtn.TextScaled = true
+openBtn.BackgroundColor3 = Color3.fromRGB(25,25,25)
+openBtn.TextColor3 = Color3.new(1,1,1)
+openBtn.Parent = gui
+openBtn.Active = true
+openBtn.Draggable = true
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromScale(0.6, 0.6)
+frame.Position = UDim2.fromScale(0.2, 0.2)
+frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+frame.Visible = false
+frame.Parent = gui
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0.05,0)
+
+-- UI List
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0.03,0)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.fromScale(1,0.1)
+title.Text = "📱 Mobile Admin"
+title.TextScaled = true
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+title.Parent = frame
+
+-- WalkSpeed Box
+local wsBox = Instance.new("TextBox")
+wsBox.Size = UDim2.fromScale(0.8,0.1)
+wsBox.PlaceholderText = "WalkSpeed (Default 16)"
+wsBox.TextScaled = true
+wsBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+wsBox.TextColor3 = Color3.new(1,1,1)
+wsBox.Parent = frame
+
+local wsBtn = Instance.new("TextButton")
+wsBtn.Size = UDim2.fromScale(0.8,0.1)
+wsBtn.Text = "Apply WalkSpeed"
+wsBtn.TextScaled = true
+wsBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+wsBtn.TextColor3 = Color3.new(1,1,1)
+wsBtn.Parent = frame
+
+-- Fly Toggle
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.fromScale(0.8,0.1)
+flyBtn.Text = "Fly: OFF"
+flyBtn.TextScaled = true
+flyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+flyBtn.TextColor3 = Color3.new(1,1,1)
+flyBtn.Parent = frame
+
+-- Kill Radius
+local killBox = Instance.new("TextBox")
+killBox.Size = UDim2.fromScale(0.8,0.1)
+killBox.PlaceholderText = "Kill Radius (Studs)"
+killBox.TextScaled = true
+killBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+killBox.TextColor3 = Color3.new(1,1,1)
+killBox.Parent = frame
+
+local killBtn = Instance.new("TextButton")
+killBtn.Size = UDim2.fromScale(0.8,0.1)
+killBtn.Text = "Kill Aura: OFF"
+killBtn.TextScaled = true
+killBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+killBtn.TextColor3 = Color3.new(1,1,1)
+killBtn.Parent = frame
+
+-- Open/Close
+openBtn.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
+end)
+
+-- WalkSpeed Logic
+wsBtn.MouseButton1Click:Connect(function()
+    local _, humanoid = getChar()
+    local val = tonumber(wsBox.Text)
+    if val then humanoid.WalkSpeed = val end
+end)
+
+-- Fly Logic
+local flying = false
+local bv, bg
+flyBtn.MouseButton1Click:Connect(function()
+    local char, _, hrp = getChar()
+    flying = not flying
+    flyBtn.Text = flying and "Fly: ON" or "Fly: OFF"
+
+    if flying then
+        bv = Instance.new("BodyVelocity", hrp)
+        bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bg = Instance.new("BodyGyro", hrp)
+        bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+
+        RunService.RenderStepped:Connect(function()
+            if flying then
+                bv.Velocity = hrp.CFrame.LookVector * 60
+                bg.CFrame = workspace.CurrentCamera.CFrame
+            end
+        end)
+    else
+        if bv then bv:Destroy() end
+        if bg then bg:Destroy() end
+    end
+end)
+
+-- Kill Aura Logic
+local killing = false
+killBtn.MouseButton1Click:Connect(function()
+    killing = not killing
+    killBtn.Text = killing and "Kill Aura: ON" or "Kill Aura: OFF"
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not killing then return end
+    local char, _, hrp = getChar()
+    local radius = tonumber(killBox.Text) or 20
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = plr.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                if (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude <= radius then
+                    hum.Health = 0
+                end
+            end
+        end
+    end
+end)
+
+print("✅ Mobile Admin GUI Loaded")
