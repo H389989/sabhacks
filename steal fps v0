@@ -1,0 +1,85 @@
+-- LocalScript in StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- GUI setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FPSChangerGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.fromScale(0.25, 0.22)
+Frame.Position = UDim2.fromScale(0.375, 0.39)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = Frame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.fromScale(1, 0.25)
+Title.BackgroundTransparency = 1
+Title.Text = "FPS Changer"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextScaled = true
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Frame
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.fromScale(0.9, 0.25)
+TextBox.Position = UDim2.fromScale(0.05, 0.32)
+TextBox.PlaceholderText = "Enter FPS amount"
+TextBox.Text = ""
+TextBox.TextScaled = true
+TextBox.Font = Enum.Font.Gotham
+TextBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TextBox.TextColor3 = Color3.new(1, 1, 1)
+TextBox.Parent = Frame
+
+Instance.new("UICorner", TextBox).CornerRadius = UDim.new(0, 8)
+
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.fromScale(0.9, 0.25)
+Button.Position = UDim2.fromScale(0.05, 0.65)
+Button.Text = "Give FPS"
+Button.TextScaled = true
+Button.Font = Enum.Font.GothamBold
+Button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.Parent = Frame
+
+Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
+
+-- Function to search ALL guis and update FPS labels
+local function setFPS(newFPS)
+	for _, gui in ipairs(PlayerGui:GetDescendants()) do
+		if gui:IsA("TextLabel") then
+			-- Match texts like "FPS: 15", "FPS:60", etc
+			if string.find(gui.Text, "FPS") then
+				local prefix = string.match(gui.Text, "FPS%s*:%s*")
+				if prefix then
+					gui.Text = prefix .. tostring(newFPS)
+				end
+			end
+		end
+	end
+end
+
+-- Button click
+Button.MouseButton1Click:Connect(function()
+	local fpsValue = tonumber(TextBox.Text)
+	if not fpsValue then
+		TextBox.Text = "Invalid number"
+		task.delay(1, function()
+			TextBox.Text = ""
+		end)
+		return
+	end
+
+	setFPS(fpsValue)
+end)
