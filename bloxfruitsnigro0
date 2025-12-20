@@ -1,21 +1,19 @@
--- StarterPlayer > StarterPlayerScripts > LocalScript
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 --------------------------------------------------
--- GUI CREATION
+-- GUI
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "EquipToggleGui"
+gui.Name = "EquipActivator"
 gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.2, 0.15)
-frame.Position = UDim2.fromScale(0.02, 0.4)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Size = UDim2.fromScale(0.22, 0.14)
+frame.Position = UDim2.fromScale(0.03, 0.4)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 frame.Active = true
@@ -24,60 +22,71 @@ frame.Draggable = true
 local corner = Instance.new("UICorner", frame)
 corner.CornerRadius = UDim.new(0, 12)
 
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.fromScale(0.9, 0.6)
-toggleBtn.Position = UDim2.fromScale(0.05, 0.2)
-toggleBtn.Text = "Enable Equip Buttons"
-toggleBtn.TextScaled = true
-toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 170, 60)
-toggleBtn.TextColor3 = Color3.new(1,1,1)
-toggleBtn.Parent = frame
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.fromScale(0.9, 0.6)
+toggle.Position = UDim2.fromScale(0.05, 0.2)
+toggle.Text = "Activate Equip Buttons"
+toggle.TextScaled = true
+toggle.BackgroundColor3 = Color3.fromRGB(70, 180, 70)
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.Parent = frame
 
-local btnCorner = Instance.new("UICorner", toggleBtn)
-btnCorner.CornerRadius = UDim.new(0, 10)
+local tCorner = Instance.new("UICorner", toggle)
+tCorner.CornerRadius = UDim.new(0, 10)
 
 --------------------------------------------------
 -- LOGIC
 --------------------------------------------------
 local enabled = false
 
-local function setEquipButtons(state)
+local function isEquipButton(obj)
+	if obj:IsA("TextButton") then
+		return string.lower(obj.Text) == "equip"
+	end
+
+	if obj:IsA("ImageButton") then
+		local label = obj:FindFirstChildWhichIsA("TextLabel")
+		if label then
+			return string.lower(label.Text) == "equip"
+		end
+	end
+
+	return false
+end
+
+local function activateEquipButtons()
 	for _, obj in ipairs(playerGui:GetDescendants()) do
-		if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-			if string.find(string.lower(obj.Name), "equip") then
-				obj.Visible = state
-				obj.Active = state
-				obj.AutoButtonColor = state
-			end
+		if isEquipButton(obj) then
+			obj.Visible = true
+			obj.Active = true
+			obj.AutoButtonColor = true
 		end
 	end
 end
 
-toggleBtn.MouseButton1Click:Connect(function()
+toggle.MouseButton1Click:Connect(function()
 	enabled = not enabled
 
 	if enabled then
-		toggleBtn.Text = "Disable Equip Buttons"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(170, 60, 60)
-		setEquipButtons(true)
+		toggle.Text = "Deactivate Equip Buttons"
+		toggle.BackgroundColor3 = Color3.fromRGB(180, 70, 70)
+		activateEquipButtons()
 	else
-		toggleBtn.Text = "Enable Equip Buttons"
-		toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 170, 60)
+		toggle.Text = "Activate Equip Buttons"
+		toggle.BackgroundColor3 = Color3.fromRGB(70, 180, 70)
 	end
 end)
 
 --------------------------------------------------
--- KEEP NEW BUTTONS ENABLED
+-- KEEP NEW BUTTONS ACTIVE
 --------------------------------------------------
 playerGui.DescendantAdded:Connect(function(obj)
-	if enabled then
-		if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-			if string.find(string.lower(obj.Name), "equip") then
-				task.wait()
-				obj.Visible = true
-				obj.Active = true
-				obj.AutoButtonColor = true
-			end
-		end
+	if not enabled then return end
+	task.wait()
+
+	if isEquipButton(obj) then
+		obj.Visible = true
+		obj.Active = true
+		obj.AutoButtonColor = true
 	end
 end)
