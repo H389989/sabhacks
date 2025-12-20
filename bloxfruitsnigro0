@@ -2,8 +2,20 @@
 -- SERVICES
 --------------------------------------------------
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+
+--------------------------------------------------
+-- PLAYERGUI READY (BULLETPROOF)
+--------------------------------------------------
+local playerGui = nil
+repeat
+	playerGui = player:FindFirstChild("PlayerGui")
+	task.wait()
+until playerGui
+
+-- wait one render frame for GUI to render
+task.wait(0.05)
 
 --------------------------------------------------
 -- CHARACTER / HUMANOID
@@ -72,9 +84,6 @@ local function findDragon(side)
 	return best
 end
 
---------------------------------------------------
--- REAL CLIENT EQUIP
---------------------------------------------------
 local function equipDragon(side)
 	local humanoid = getHumanoid()
 	local tool = findDragon(side)
@@ -91,12 +100,16 @@ local function equipDragon(side)
 end
 
 --------------------------------------------------
--- BUILD EXPLOIT-STYLE GUI
+-- BUILD EXPLOIT-STYLE DROPDOWN GUI
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "ExploitDragonUI"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.Parent = playerGui
+
+-- FORCE REDRAW (bulletproof)
+gui.Parent = nil
 gui.Parent = playerGui
 
 local main = Instance.new("Frame")
@@ -131,7 +144,6 @@ dropdown.Parent = main
 Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0,10)
 
 local opened = false
-
 local function makeOption(text, y, callback)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.fromOffset(240, 36)
@@ -156,13 +168,11 @@ makeOption("Equip Dragon West", 56, function()
 end)
 
 --------------------------------------------------
--- TOGGLE
+-- TOGGLE DROPDOWN
 --------------------------------------------------
 header.MouseButton1Click:Connect(function()
 	opened = not opened
-	header.Text = opened
-		and "🐉 Dragon Selector  ▴"
-		or  "🐉 Dragon Selector  ▾"
+	header.Text = opened and "🐉 Dragon Selector  ▴" or "🐉 Dragon Selector  ▾"
 
 	dropdown:TweenSize(
 		opened and UDim2.fromOffset(260, 102) or UDim2.fromOffset(260, 0),
@@ -173,4 +183,13 @@ header.MouseButton1Click:Connect(function()
 	)
 end)
 
-print("✅ Exploit-style Dragon dropdown loaded instantly")
+--------------------------------------------------
+-- AUTO-HOOK NEW DRAGON TOOLS (optional)
+--------------------------------------------------
+local backpack = player:WaitForChild("Backpack")
+backpack.ChildAdded:Connect(function(child)
+	task.wait(0.05)
+	-- re-equip if you want auto-detection
+end)
+
+print("✅ Bulletproof exploit-style Dragon dropdown loaded instantly")
