@@ -1,3 +1,6 @@
+--------------------------------------------------
+-- SERVICES
+--------------------------------------------------
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -6,7 +9,58 @@ local playerGui = player:WaitForChild("PlayerGui")
 local equipEvent = ReplicatedStorage:WaitForChild("EquipDragon")
 
 --------------------------------------------------
--- FAST CHECK
+-- BUILD GUI (INSTANT)
+--------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "PermDragonController"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromScale(0.22, 0.16)
+frame.Position = UDim2.fromScale(0.02, 0.42)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 14)
+corner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.fromScale(1, 0.3)
+title.BackgroundTransparency = 1
+title.Text = "Perm Dragon"
+title.TextScaled = true
+title.TextColor3 = Color3.new(1,1,1)
+title.Parent = frame
+
+local equipBtn = Instance.new("TextButton")
+equipBtn.Size = UDim2.fromScale(0.9, 0.45)
+equipBtn.Position = UDim2.fromScale(0.05, 0.45)
+equipBtn.Text = "Equip"
+equipBtn.TextScaled = true
+equipBtn.BackgroundColor3 = Color3.fromRGB(80,180,80)
+equipBtn.TextColor3 = Color3.new(1,1,1)
+equipBtn.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 12)
+btnCorner.Parent = equipBtn
+
+--------------------------------------------------
+-- GUI BUTTON LOGIC
+--------------------------------------------------
+equipBtn.MouseButton1Click:Connect(function()
+	equipEvent:FireServer()
+	equipBtn.Text = "Equipped"
+	equipBtn.BackgroundColor3 = Color3.fromRGB(120,120,120)
+end)
+
+--------------------------------------------------
+-- FAST UI OVERRIDE LOGIC
 --------------------------------------------------
 local function handleButton(btn)
 	if btn:GetAttribute("Handled") then return end
@@ -22,7 +76,7 @@ local function handleButton(btn)
 		return
 	end
 
-	-- EQUIP BUTTON
+	-- EQUIP BUTTONS IN GAME
 	if text == "equip" then
 		btn.Visible = true
 		btn.Active = true
@@ -36,10 +90,10 @@ local function handleButton(btn)
 end
 
 --------------------------------------------------
--- INITIAL FAST PASS (ONCE)
+-- ONE-TIME FAST SCAN
 --------------------------------------------------
-for _, gui in ipairs(playerGui:GetChildren()) do
-	for _, obj in ipairs(gui:GetDescendants()) do
+for _, guiObj in ipairs(playerGui:GetChildren()) do
+	for _, obj in ipairs(guiObj:GetDescendants()) do
 		if obj:IsA("TextButton") then
 			handleButton(obj)
 		end
@@ -47,11 +101,10 @@ for _, gui in ipairs(playerGui:GetChildren()) do
 end
 
 --------------------------------------------------
--- HANDLE ONLY NEW OBJECTS (NO RESCAN)
+-- HANDLE NEW UI ONLY
 --------------------------------------------------
 playerGui.DescendantAdded:Connect(function(obj)
 	if obj:IsA("TextButton") then
-		-- defer = runs next frame, UI already ready
 		task.defer(handleButton, obj)
 	end
 end)
