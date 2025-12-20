@@ -3,193 +3,91 @@
 --------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 --------------------------------------------------
--- PLAYERGUI READY (BULLETPROOF)
+-- WAIT FOR PLAYERGUI (BULLETPROOF)
 --------------------------------------------------
-local playerGui = nil
-repeat
-	playerGui = player:FindFirstChild("PlayerGui")
-	task.wait()
-until playerGui
-
--- wait one render frame for GUI to render
 task.wait(0.05)
 
 --------------------------------------------------
--- CHARACTER / HUMANOID
+-- YOUR DRAGON TEMPLATE (REPLACE WITH REAL TOOL)
 --------------------------------------------------
-local function getHumanoid()
-	local char = player.Character or player.CharacterAdded:Wait()
-	return char:WaitForChild("Humanoid")
+local dragonTemplate = nil
+
+-- Try to find any tool with "dragon" in name in Backpack or ReplicatedStorage
+local function findDragonTemplate()
+	if dragonTemplate then return dragonTemplate end
+	local searchLocations = {player.Backpack, ReplicatedStorage}
+	for _, loc in ipairs(searchLocations) do
+		for _, obj in ipairs(loc:GetChildren()) do
+			if obj:IsA("Tool") and string.find(obj.Name:lower(),"dragon") then
+				dragonTemplate = obj
+				return dragonTemplate
+			end
+		end
+	end
+	return nil
 end
 
 --------------------------------------------------
--- SMART DRAGON DETECTION (RENAMED SAFE)
+-- REPLACE FUNCTION
 --------------------------------------------------
-local KEYWORDS = {
-	dragon = { "dragon", "draco", "wyrm" },
-	east = { "east", "right", "sunrise", "alpha" },
-	west = { "west", "left", "sunset", "omega" }
-}
-
-local function hasKeyword(text, list)
-	if not text then return false end
-	text = tostring(text):lower()
-	for _, k in ipairs(list) do
-		if text:find(k) then
-			return true
-		end
-	end
-	return false
-end
-
-local function scoreTool(tool, side)
-	local score = 0
-
-	if hasKeyword(tool.Name, KEYWORDS.dragon) then score += 2 end
-	if hasKeyword(tool.Name, KEYWORDS[side]) then score += 4 end
-	if hasKeyword(tool.ToolTip, KEYWORDS[side]) then score += 3 end
-
-	for _, attr in ipairs(tool:GetAttributes()) do
-		if hasKeyword(attr, KEYWORDS[side]) then
-			score += 5
-		end
+local function replaceAllWithDragon()
+	local template = findDragonTemplate()
+	if not template then
+		warn("❌ No Dragon template found to replace items")
+		return
 	end
 
-	for _, d in ipairs(tool:GetDescendants()) do
-		if hasKeyword(d.Name, KEYWORDS[side]) then
-			score += 1
-		end
-	end
-
-	return score
-end
-
-local function findDragon(side)
-	local backpack = player:WaitForChild("Backpack")
-	local best, bestScore = nil, 0
-
-	for _, tool in ipairs(backpack:GetChildren()) do
-		if tool:IsA("Tool") then
-			local s = scoreTool(tool, side)
-			if s > bestScore then
-				bestScore = s
-				best = tool
+	local targets = {workspace, ReplicatedStorage, player.Backpack, player.StarterGear}
+	for _, loc in ipairs(targets) do
+		for _, item in ipairs(loc:GetChildren()) do
+			if item:IsA("Tool") and not string.find(item.Name:lower(),"dragon") then
+				local clone = template:Clone()
+				clone.Parent = loc
+				item:Destroy()
 			end
 		end
 	end
 
-	return best
-end
-
-local function equipDragon(side)
-	local humanoid = getHumanoid()
-	local tool = findDragon(side)
-
-	if not tool then
-		warn("❌ Dragon", side, "not found")
-		return
-	end
-
-	humanoid:UnequipTools()
-	humanoid:EquipTool(tool)
-
-	print("🐉 Equipped", side, "→", tool.Name)
+	print("🐉 All tools/items replaced with Dragon!")
 end
 
 --------------------------------------------------
--- BUILD EXPLOIT-STYLE DROPDOWN GUI
+-- CREATE GUI BUTTON
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "ExploitDragonUI"
+gui.Name = "DragonChaosUI"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = playerGui
-
--- FORCE REDRAW (bulletproof)
 gui.Parent = nil
-gui.Parent = playerGui
+gui.Parent = playerGui -- force redraw
 
-local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(260, 40)
-main.Position = UDim2.fromOffset(30, 260)
-main.BackgroundColor3 = Color3.fromRGB(12,12,12)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(220, 60)
+frame.Position = UDim2.fromOffset(30, 520)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
 
-local header = Instance.new("TextButton")
-header.Size = UDim2.fromScale(1,1)
-header.BackgroundTransparency = 1
-header.Text = "🐉 Dragon Selector  ▾"
-header.Font = Enum.Font.Code
-header.TextSize = 16
-header.TextColor3 = Color3.fromRGB(0,255,140)
-header.Parent = main
+local button = Instance.new("TextButton")
+button.Size = UDim2.fromOffset(200, 40)
+button.Position = UDim2.fromOffset(10, 10)
+button.BackgroundColor3 = Color3.fromRGB(255,50,50)
+button.TextColor3 = Color3.new(1,1,1)
+button.Text = "Replace All Items with Dragon"
+button.Font = Enum.Font.Code
+button.TextSize = 14
+button.Parent = frame
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
 
---------------------------------------------------
--- DROPDOWN
---------------------------------------------------
-local dropdown = Instance.new("Frame")
-dropdown.Size = UDim2.fromOffset(260, 0)
-dropdown.Position = UDim2.fromOffset(0, 40)
-dropdown.BackgroundColor3 = Color3.fromRGB(18,18,18)
-dropdown.BorderSizePixel = 0
-dropdown.ClipsDescendants = true
-dropdown.Parent = main
-Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0,10)
+button.MouseButton1Click:Connect(replaceAllWithDragon)
 
-local opened = false
-local function makeOption(text, y, callback)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(240, 36)
-	btn.Position = UDim2.fromOffset(10, y)
-	btn.BackgroundColor3 = Color3.fromRGB(28,28,28)
-	btn.Text = text
-	btn.Font = Enum.Font.Code
-	btn.TextSize = 15
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Parent = dropdown
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
-
-	btn.MouseButton1Click:Connect(callback)
-end
-
-makeOption("Equip Dragon East", 10, function()
-	equipDragon("east")
-end)
-
-makeOption("Equip Dragon West", 56, function()
-	equipDragon("west")
-end)
-
---------------------------------------------------
--- TOGGLE DROPDOWN
---------------------------------------------------
-header.MouseButton1Click:Connect(function()
-	opened = not opened
-	header.Text = opened and "🐉 Dragon Selector  ▴" or "🐉 Dragon Selector  ▾"
-
-	dropdown:TweenSize(
-		opened and UDim2.fromOffset(260, 102) or UDim2.fromOffset(260, 0),
-		Enum.EasingDirection.Out,
-		Enum.EasingStyle.Quad,
-		0.15,
-		true
-	)
-end)
-
---------------------------------------------------
--- AUTO-HOOK NEW DRAGON TOOLS (optional)
---------------------------------------------------
-local backpack = player:WaitForChild("Backpack")
-backpack.ChildAdded:Connect(function(child)
-	task.wait(0.05)
-	-- re-equip if you want auto-detection
-end)
-
-print("✅ Bulletproof exploit-style Dragon dropdown loaded instantly")
+print("✅ Dragon Chaos button ready")
