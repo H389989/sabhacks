@@ -1,161 +1,57 @@
 --------------------------------------------------
--- SERVICES
+-- INSTANT UI BOOTSTRAP (NO DELAY, NO LAG)
 --------------------------------------------------
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
+
+-- Wait until PlayerGui exists AND UI engine is ready
 local playerGui = player:WaitForChild("PlayerGui")
-local equipEvent = ReplicatedStorage:WaitForChild("EquipDragon")
+
+-- This is the critical sync point
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+
+-- One render step ensures UI draws instantly
+task.wait()
 
 --------------------------------------------------
--- EXPLOIT UI
+-- BUILD GUI (GUARANTEED VISIBLE)
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "FakeExecutor"
+gui.Name = "InstantExecutorUI"
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.Enabled = true
+gui.Parent = playerGui
+
+-- Force redraw (important)
+gui.Parent = nil
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.28, 0.3)
-frame.Position = UDim2.fromScale(0.02, 0.35)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.Size = UDim2.fromOffset(360, 260)
+frame.Position = UDim2.fromOffset(30, 200)
+frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+frame.Visible = true
+frame.ZIndex = 999
 frame.Parent = gui
 
-local corner = Instance.new("UICorner", frame)
+local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.fromScale(1, 0.15)
+title.Size = UDim2.fromOffset(360, 40)
 title.BackgroundTransparency = 1
-title.Text = "Executor v3.8 — Injected"
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(0,255,140)
+title.Text = "Executor Attached"
 title.Font = Enum.Font.Code
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0, 255, 140)
 title.Parent = frame
 
-local log = Instance.new("TextLabel")
-log.Size = UDim2.fromScale(1, 0.55)
-log.Position = UDim2.fromScale(0, 0.15)
-log.BackgroundTransparency = 1
-log.TextWrapped = true
-log.TextYAlignment = Enum.TextYAlignment.Top
-log.TextXAlignment = Enum.TextXAlignment.Left
-log.TextScaled = true
-log.TextColor3 = Color3.fromRGB(200,200,200)
-log.Font = Enum.Font.Code
-log.Text = "[+] Executor attached\n"
-log.Parent = frame
-
-local injectBtn = Instance.new("TextButton")
-injectBtn.Size = UDim2.fromScale(0.9, 0.18)
-injectBtn.Position = UDim2.fromScale(0.05, 0.75)
-injectBtn.Text = "INJECT EQUIP"
-injectBtn.TextScaled = true
-injectBtn.Font = Enum.Font.Code
-injectBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-injectBtn.TextColor3 = Color3.fromRGB(255,70,70)
-injectBtn.Parent = frame
-
---------------------------------------------------
--- UTIL
---------------------------------------------------
-local function addLog(text)
-	log.Text ..= text .. "\n"
-end
-
---------------------------------------------------
--- CORE EXPLOIT LOGIC
---------------------------------------------------
-local injected = false
-
-local function forceEquipButton(parent)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromScale(0.35, 0.12)
-	btn.Position = UDim2.fromScale(0.6, 0.8)
-	btn.Text = "Equip"
-	btn.TextScaled = true
-	btn.Font = Enum.Font.Code
-	btn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.ZIndex = 999
-	btn.Parent = parent
-
-	btn.MouseButton1Click:Connect(function()
-		equipEvent:FireServer()
-		btn.Text = "Equipped"
-	end)
-end
-
-local function scanAndInject()
-	local found = false
-
-	for _, guiObj in ipairs(playerGui:GetDescendants()) do
-		if guiObj:IsA("TextButton") then
-			local text = string.lower(guiObj.Text)
-
-			-- Found legit equip
-			if text == "equip" then
-				guiObj.Visible = true
-				guiObj.Active = true
-				guiObj.AutoButtonColor = true
-
-				if not guiObj:GetAttribute("Hooked") then
-					guiObj:SetAttribute("Hooked", true)
-					guiObj.MouseButton1Click:Connect(function()
-						equipEvent:FireServer()
-					end)
-				end
-
-				found = true
-			end
-		end
-
-		-- Inject if container looks like item UI
-		if guiObj:IsA("Frame") or guiObj:IsA("ImageLabel") then
-			if guiObj.Name:lower():find("dragon")
-			or guiObj.Name:lower():find("fruit")
-			or guiObj.Name:lower():find("item") then
-				if not guiObj:FindFirstChild("InjectedEquip") then
-					local marker = Instance.new("BoolValue")
-					marker.Name = "InjectedEquip"
-					marker.Parent = guiObj
-
-					forceEquipButton(guiObj)
-					addLog("[+] Injected Equip into " .. guiObj.Name)
-					found = true
-				end
-			end
-		end
-	end
-
-	if not found then
-		addLog("[-] No Equip found — retrying")
-	end
-end
-
---------------------------------------------------
--- INJECT BUTTON
---------------------------------------------------
-injectBtn.MouseButton1Click:Connect(function()
-	if injected then return end
-	injected = true
-	addLog("[*] Scanning UI memory...")
-	scanAndInject()
-end)
-
---------------------------------------------------
--- LIVE SCAN LOOP (EXPLOIT STYLE)
---------------------------------------------------
-task.spawn(function()
-	while true do
-		if injected then
-			scanAndInject()
-		end
-		task.wait(2)
-	end
-end)
+print("✅ GUI LOADED INSTANTLY")
