@@ -1,5 +1,3 @@
--- StarterPlayer > StarterPlayerScripts > LocalScript
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -7,27 +5,40 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local equipEvent = ReplicatedStorage:WaitForChild("EquipDragon")
 
-local function hookEquipButtons()
+local function fixButtons()
 	for _, obj in ipairs(playerGui:GetDescendants()) do
-		if obj:IsA("TextButton") and string.lower(obj.Text) == "equip" then
-			if not obj:GetAttribute("Hooked") then
-				obj:SetAttribute("Hooked", true)
+		-- BUTTON THAT USED TO ASK FOR ROBUX
+		if obj:IsA("TextButton") then
+			-- Replace buy text
+			if string.find(string.lower(obj.Text), "buy") 
+			or string.find(string.lower(obj.Text), "robux") then
+				obj.Text = "Owned"
+				obj.Active = false
+				obj.AutoButtonColor = false
+			end
 
+			-- Real equip button
+			if string.lower(obj.Text) == "equip" then
 				obj.Visible = true
 				obj.Active = true
 				obj.AutoButtonColor = true
 
-				obj.MouseButton1Click:Connect(function()
-					equipEvent:FireServer()
-				end)
+				if not obj:GetAttribute("Hooked") then
+					obj:SetAttribute("Hooked", true)
+
+					obj.MouseButton1Click:Connect(function()
+						equipEvent:FireServer()
+						obj.Text = "Equipped"
+					end)
+				end
 			end
 		end
 	end
 end
 
-hookEquipButtons()
+fixButtons()
 
 playerGui.DescendantAdded:Connect(function()
 	task.wait()
-	hookEquipButtons()
+	fixButtons()
 end)
