@@ -1,169 +1,133 @@
 --------------------------------------------------
--- INSTANT UI BOOTSTRAP (GUARANTEED)
+-- SERVICES
 --------------------------------------------------
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
-if not game:IsLoaded() then
-	game.Loaded:Wait()
-end
-task.wait() -- one render frame only
-
-local equipEvent = ReplicatedStorage:WaitForChild("EquipDragon")
 
 --------------------------------------------------
--- EXECUTOR-STYLE GUI (INSTANT)
+-- DRAGON STATE
 --------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "InstantExecutor"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-gui.Parent = playerGui
-
--- force redraw (critical)
-gui.Parent = nil
-gui.Parent = playerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(360, 280)
-frame.Position = UDim2.fromOffset(30, 220)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.ZIndex = 999
-frame.Parent = gui
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.fromOffset(360, 36)
-title.BackgroundTransparency = 1
-title.Text = "Executor Attached"
-title.Font = Enum.Font.Code
-title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(0,255,140)
-title.Parent = frame
-
-local log = Instance.new("TextLabel")
-log.Size = UDim2.fromOffset(340, 170)
-log.Position = UDim2.fromOffset(10, 40)
-log.BackgroundTransparency = 1
-log.TextWrapped = true
-log.TextXAlignment = Left
-log.TextYAlignment = Top
-log.Font = Enum.Font.Code
-log.TextSize = 14
-log.TextColor3 = Color3.fromRGB(200,200,200)
-log.Text = "[+] UI injected\n"
-log.Parent = frame
-
-local injectBtn = Instance.new("TextButton")
-injectBtn.Size = UDim2.fromOffset(320, 40)
-injectBtn.Position = UDim2.fromOffset(20, 225)
-injectBtn.Text = "SCAN & INJECT EQUIP"
-injectBtn.Font = Enum.Font.Code
-injectBtn.TextSize = 16
-injectBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-injectBtn.TextColor3 = Color3.fromRGB(255,80,80)
-injectBtn.Parent = frame
+local dragon
+local equipped = false
 
 --------------------------------------------------
--- LOG UTIL
+-- CREATE DRAGON (CLIENT ONLY)
 --------------------------------------------------
-local function addLog(text)
-	log.Text ..= text .. "\n"
+local function spawnDragon()
+	if dragon then return end
+
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	dragon = Instance.new("Part")
+	dragon.Name = "ClientDragon"
+	dragon.Size = Vector3.new(8, 4, 16)
+	dragon.Color = Color3.fromRGB(255, 80, 80)
+	dragon.Material = Enum.Material.Neon
+	dragon.CanCollide = false
+	dragon.Anchored = true
+	dragon.Parent = workspace
+
+	equipped = true
+	print("🐉 Dragon spawned (client)")
 end
 
 --------------------------------------------------
--- EQUIP SCANNER / INJECTOR
+-- DRAGON FOLLOW (EXPLOIT FEEL)
 --------------------------------------------------
-local injected = false
+RunService.RenderStepped:Connect(function()
+	if not dragon or not equipped then return end
+	local char = player.Character
+	if not char then return end
 
-local function hookEquipButton(btn)
-	if btn:GetAttribute("Hooked") then return end
-	btn:SetAttribute("Hooked", true)
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
 
-	btn.Visible = true
-	btn.Active = true
-	btn.AutoButtonColor = true
-
-	btn.MouseButton1Click:Connect(function()
-		equipEvent:FireServer()
-		btn.Text = "Equipped"
-	end)
-
-	addLog("[+] Hooked Equip button")
-end
-
-local function injectEquip(parent)
-	local btn = Instance.new("TextButton")
-	btn.Name = "InjectedEquip"
-	btn.Size = UDim2.fromOffset(120, 36)
-	btn.Position = UDim2.fromScale(0.6, 0.8)
-	btn.Text = "Equip"
-	btn.Font = Enum.Font.Code
-	btn.TextSize = 16
-	btn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.ZIndex = 999
-	btn.Parent = parent
-
-	hookEquipButton(btn)
-	addLog("[+] Injected Equip into " .. parent.Name)
-end
-
-local function scanUI()
-	local found = false
-
-	for _, obj in ipairs(playerGui:GetDescendants()) do
-		-- REAL EQUIP BUTTON
-		if obj:IsA("TextButton") then
-			if string.lower(obj.Text) == "equip" then
-				hookEquipButton(obj)
-				found = true
-			end
-		end
-
-		-- INJECT INTO ITEM FRAMES
-		if obj:IsA("Frame") or obj:IsA("ImageLabel") then
-			local name = obj.Name:lower()
-			if (name:find("dragon") or name:find("fruit") or name:find("item"))
-			and not obj:FindFirstChild("InjectedEquip") then
-				injectEquip(obj)
-				found = true
-			end
-		end
-	end
-
-	if not found then
-		addLog("[-] No equip found, retrying")
-	end
-end
-
---------------------------------------------------
--- BUTTON + LIVE SCAN (EXPLOIT STYLE)
---------------------------------------------------
-injectBtn.MouseButton1Click:Connect(function()
-	if injected then return end
-	injected = true
-	addLog("[*] Scanning UI memory...")
-	scanUI()
+	dragon.CFrame =
+		hrp.CFrame
+		* CFrame.new(0, 6, -14)
+		* CFrame.Angles(0, math.rad(180), 0)
 end)
 
--- continuous scan (lightweight)
-task.spawn(function()
-	while true do
-		if injected then
-			scanUI()
-		end
-		task.wait(2)
+--------------------------------------------------
+-- ABILITIES (CLIENT ONLY)
+--------------------------------------------------
+local function fireBreath()
+	if not dragon then return end
+
+	local fire = Instance.new("Part")
+	fire.Size = Vector3.new(4,4,12)
+	fire.Material = Enum.Material.Neon
+	fire.Color = Color3.fromRGB(255,140,0)
+	fire.CanCollide = false
+	fire.Anchored = false
+	fire.CFrame = dragon.CFrame * CFrame.new(0,0,-10)
+	fire.Velocity = dragon.CFrame.LookVector * 120
+	fire.Parent = workspace
+
+	Debris:AddItem(fire, 1)
+end
+
+local function dash()
+	if not dragon then return end
+	dragon.CFrame *= CFrame.new(0, 0, -20)
+end
+
+local function slam()
+	if not dragon then return end
+
+	local shock = Instance.new("Part")
+	shock.Size = Vector3.new(30,1,30)
+	shock.Material = Enum.Material.Neon
+	shock.Color = Color3.fromRGB(255,0,0)
+	shock.CanCollide = false
+	shock.Anchored = true
+	shock.CFrame = dragon.CFrame * CFrame.new(0,-6,0)
+	shock.Parent = workspace
+
+	Debris:AddItem(shock, 0.4)
+end
+
+--------------------------------------------------
+-- KEYBINDS (EXPLOITER STYLE)
+--------------------------------------------------
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp or not equipped then return end
+
+	if input.KeyCode == Enum.KeyCode.Z then
+		fireBreath()
+	elseif input.KeyCode == Enum.KeyCode.X then
+		dash()
+	elseif input.KeyCode == Enum.KeyCode.C then
+		slam()
 	end
 end)
 
-print("✅ Executor GUI loaded instantly")
+--------------------------------------------------
+-- AUTO-EQUIP HOOK
+-- (called when ANY Equip button is pressed)
+--------------------------------------------------
+local function hookEquipButtons()
+	for _, obj in ipairs(player.PlayerGui:GetDescendants()) do
+		if obj:IsA("TextButton")
+		and string.lower(obj.Text) == "equip"
+		and not obj:GetAttribute("DragonHooked") then
+
+			obj:SetAttribute("DragonHooked", true)
+			obj.MouseButton1Click:Connect(function()
+				spawnDragon()
+				obj.Text = "Equipped"
+			end)
+		end
+	end
+end
+
+hookEquipButtons()
+player.PlayerGui.DescendantAdded:Connect(function()
+	task.wait()
+	hookEquipButtons()
+end)
