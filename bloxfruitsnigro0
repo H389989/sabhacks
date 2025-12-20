@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 --------------------------------------------------
--- PLAYERGUI READY (BULLETPROOF)
+-- PLAYERGUI READY (INSTANT / SAFE)
 --------------------------------------------------
 local playerGui
 repeat
@@ -16,133 +16,51 @@ until playerGui
 task.wait(0.05)
 
 --------------------------------------------------
--- HUMANOID
+-- GIVE ALL ITEMS LOGIC
 --------------------------------------------------
-local function getHumanoid()
-	local char = player.Character or player.CharacterAdded:Wait()
-	return char:WaitForChild("Humanoid")
+local given = {}
+
+local function giveTool(tool)
+	if not tool:IsA("Tool") then return end
+	if given[tool.Name] then return end
+
+	local clone = tool:Clone()
+	clone.Parent = player.Backpack
+	given[tool.Name] = true
 end
 
---------------------------------------------------
--- FIND DRAGON TEMPLATE (RENAMED SAFE)
---------------------------------------------------
-local dragonTemplate
-
-local function isDragon(tool)
-	return tool:IsA("Tool") and tool.Name:lower():find("dragon")
-end
-
-local function findDragonTemplate()
-	if dragonTemplate then return dragonTemplate end
-
+local function giveAllItems()
 	local sources = {
-		player:WaitForChild("Backpack"),
+		workspace,
 		ReplicatedStorage,
-		workspace
+		player.StarterGear,
 	}
 
-	for _, src in ipairs(sources) do
-		for _, obj in ipairs(src:GetDescendants()) do
-			if obj:IsA("Tool") and obj.Name:lower():find("dragon") then
-				dragonTemplate = obj
-				return dragonTemplate
+	for _, source in ipairs(sources) do
+		for _, obj in ipairs(source:GetDescendants()) do
+			if obj:IsA("Tool") then
+				giveTool(obj)
 			end
 		end
 	end
+
+	print("✅ All client-visible items given")
 end
 
 --------------------------------------------------
--- DRAGON MODE STATE
---------------------------------------------------
-local dragonMode = false
-
---------------------------------------------------
--- REPLACE + EQUIP
---------------------------------------------------
-local function equipAnyDragon()
-	local humanoid = getHumanoid()
-	local backpack = player.Backpack
-
-	for _, tool in ipairs(backpack:GetChildren()) do
-		if tool:IsA("Tool") and tool.Name:lower():find("dragon") then
-			humanoid:UnequipTools()
-			humanoid:EquipTool(tool)
-			return
-		end
-	end
-end
-
-local function replaceContainer(container)
-	local template = findDragonTemplate()
-	if not template then
-		warn("❌ No Dragon template found")
-		return
-	end
-
-	for _, obj in ipairs(container:GetChildren()) do
-		if obj:IsA("Tool") and not isDragon(obj) then
-			local clone = template:Clone()
-			clone.Parent = container
-			obj:Destroy()
-		end
-	end
-end
-
-local function replaceEverything()
-	dragonMode = true
-
-	replaceContainer(workspace)
-	replaceContainer(ReplicatedStorage)
-	replaceContainer(player.Backpack)
-	replaceContainer(player.StarterGear)
-
-	task.wait()
-	equipAnyDragon()
-
-	print("🐉 DRAGON MODE ENABLED")
-end
-
---------------------------------------------------
--- LIVE REPLACEMENT (NEW ITEMS)
---------------------------------------------------
-local function hookContainer(container)
-	container.ChildAdded:Connect(function(obj)
-		if dragonMode and obj:IsA("Tool") and not isDragon(obj) then
-			task.wait()
-			replaceContainer(container)
-			equipAnyDragon()
-		end
-	end)
-end
-
-hookContainer(workspace)
-hookContainer(ReplicatedStorage)
-hookContainer(player.Backpack)
-
---------------------------------------------------
--- RESPAWN AUTO-EQUIP
---------------------------------------------------
-player.CharacterAdded:Connect(function()
-	if dragonMode then
-		task.wait(0.3)
-		equipAnyDragon()
-	end
-end)
-
---------------------------------------------------
--- GUI (EXPLOIT STYLE)
+-- GUI
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "DragonModeUI"
+gui.Name = "GiveAllItemsUI"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = playerGui
 gui.Parent = nil
-gui.Parent = playerGui -- force draw
+gui.Parent = playerGui -- force render
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(240, 60)
-frame.Position = UDim2.fromOffset(30, 560)
+frame.Size = UDim2.fromOffset(230, 60)
+frame.Position = UDim2.fromOffset(30, 620)
 frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -151,20 +69,20 @@ frame.Parent = gui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.fromOffset(220, 40)
+button.Size = UDim2.fromOffset(210, 40)
 button.Position = UDim2.fromOffset(10, 10)
-button.BackgroundColor3 = Color3.fromRGB(255,60,60)
+button.BackgroundColor3 = Color3.fromRGB(0,170,255)
 button.TextColor3 = Color3.new(1,1,1)
 button.Font = Enum.Font.Code
-button.TextSize = 14
-button.Text = "🐉 ENABLE DRAGON MODE"
+button.TextSize = 15
+button.Text = "🎒 GIVE ALL ITEMS"
 button.Parent = frame
 Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
 
 button.MouseButton1Click:Connect(function()
-	replaceEverything()
-	button.Text = "🐉 DRAGON MODE ACTIVE"
-	button.BackgroundColor3 = Color3.fromRGB(0,170,100)
+	giveAllItems()
+	button.Text = "✅ ITEMS GIVEN"
+	button.BackgroundColor3 = Color3.fromRGB(0,180,120)
 end)
 
-print("✅ Dragon Mode loaded instantly")
+print("✅ Give All Items button loaded")
