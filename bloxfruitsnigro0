@@ -2,84 +2,114 @@
 -- SERVICES
 --------------------------------------------------
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
-local backpack = player:WaitForChild("Backpack")
+local playerGui = player:WaitForChild("PlayerGui")
 
 --------------------------------------------------
--- UTIL
+-- WAIT FOR CHARACTER
 --------------------------------------------------
-local function isDragonItem(obj)
-	return obj:IsA("Tool") and string.find(obj.Name:lower(), "dragon")
-end
-
-local function giveTool(tool)
-	if backpack:FindFirstChild(tool.Name) then return end
-
-	local clone = tool:Clone()
-	clone.Parent = backpack
-	player.Character.Humanoid:EquipTool(clone)
-
-	print("🐉 Gave Dragon item:", clone.Name)
+local function getHumanoid()
+	local char = player.Character or player.CharacterAdded:Wait()
+	return char:WaitForChild("Humanoid")
 end
 
 --------------------------------------------------
--- SCAN LOCATIONS (EXPLOIT STYLE)
+-- FIND DRAGON TOOLS
 --------------------------------------------------
-local scanSources = {
-	game:GetService("ReplicatedStorage"),
-	workspace,
-	player.StarterGear,
-}
+local function findDragonTool(typeName)
+	local backpack = player:WaitForChild("Backpack")
 
---------------------------------------------------
--- INITIAL SCAN (INSTANT)
---------------------------------------------------
-local function scanAll()
-	for _, source in ipairs(scanSources) do
-		for _, obj in ipairs(source:GetDescendants()) do
-			if isDragonItem(obj) then
-				giveTool(obj)
+	for _, tool in ipairs(backpack:GetChildren()) do
+		if tool:IsA("Tool") and tool.Name:lower():find("dragon") then
+			if tool.Name:lower():find(typeName) then
+				return tool
 			end
 		end
 	end
+
+	return nil
 end
 
 --------------------------------------------------
--- CHARACTER READY
+-- EQUIP LOGIC (REAL, NOT VISUAL)
 --------------------------------------------------
-local function onCharacter(char)
-	char:WaitForChild("Humanoid")
-	task.wait()
-	scanAll()
-end
+local function equipDragon(typeName)
+	local humanoid = getHumanoid()
+	local tool = findDragonTool(typeName)
 
-if player.Character then
-	onCharacter(player.Character)
-end
-player.CharacterAdded:Connect(onCharacter)
-
---------------------------------------------------
--- LIVE SCAN (FOR NEW ITEMS)
---------------------------------------------------
-for _, source in ipairs(scanSources) do
-	source.DescendantAdded:Connect(function(obj)
-		if isDragonItem(obj) then
-			task.wait()
-			giveTool(obj)
-		end
-	end)
-end
-
---------------------------------------------------
--- BACKPACK PROTECTION (RE-EQUIP)
---------------------------------------------------
-backpack.ChildRemoved:Connect(function(obj)
-	if isDragonItem(obj) then
-		task.wait()
-		scanAll()
+	if not tool then
+		warn("❌ No Dragon " .. typeName .. " found")
+		return
 	end
+
+	humanoid:UnequipTools()
+	humanoid:EquipTool(tool)
+
+	print("🐉 Equipped Dragon", typeName)
+end
+
+--------------------------------------------------
+-- BUILD GUI (INSTANT)
+--------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "DragonEquipUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(280, 160)
+frame.Position = UDim2.fromOffset(30, 300)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.fromOffset(280, 36)
+title.BackgroundTransparency = 1
+title.Text = "Dragon Selector"
+title.Font = Enum.Font.Code
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0,255,140)
+title.Parent = frame
+
+--------------------------------------------------
+-- BUTTONS
+--------------------------------------------------
+local function makeButton(text, y, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.fromOffset(240, 36)
+	btn.Position = UDim2.fromOffset(20, y)
+	btn.Text = text
+	btn.Font = Enum.Font.Code
+	btn.TextSize = 16
+	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Parent = frame
+
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+	btn.MouseButton1Click:Connect(callback)
+end
+
+makeButton("Equip Dragon East", 50, function()
+	equipDragon("east")
 end)
 
-print("✅ Dragon item scanner active")
+makeButton("Equip Dragon West", 95, function()
+	equipDragon("west")
+end)
+
+--------------------------------------------------
+-- AUTO RE-EQUIP ON RESPAWN (OPTIONAL)
+--------------------------------------------------
+player.CharacterAdded:Connect(function()
+	task.wait(0.3)
+	-- re-equip last used if you want
+end)
+
+print("✅ Dragon equip UI loaded instantly")
