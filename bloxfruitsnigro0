@@ -6,7 +6,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 --------------------------------------------------
--- WAIT FOR CHARACTER
+-- CHARACTER / HUMANOID
 --------------------------------------------------
 local function getHumanoid()
 	local char = player.Character or player.CharacterAdded:Wait()
@@ -14,102 +14,163 @@ local function getHumanoid()
 end
 
 --------------------------------------------------
--- FIND DRAGON TOOLS
+-- SMART DRAGON DETECTION (RENAMED SAFE)
 --------------------------------------------------
-local function findDragonTool(typeName)
+local KEYWORDS = {
+	dragon = { "dragon", "draco", "wyrm" },
+	east = { "east", "right", "sunrise", "alpha" },
+	west = { "west", "left", "sunset", "omega" }
+}
+
+local function hasKeyword(text, list)
+	if not text then return false end
+	text = tostring(text):lower()
+	for _, k in ipairs(list) do
+		if text:find(k) then
+			return true
+		end
+	end
+	return false
+end
+
+local function scoreTool(tool, side)
+	local score = 0
+
+	if hasKeyword(tool.Name, KEYWORDS.dragon) then score += 2 end
+	if hasKeyword(tool.Name, KEYWORDS[side]) then score += 4 end
+	if hasKeyword(tool.ToolTip, KEYWORDS[side]) then score += 3 end
+
+	for _, attr in ipairs(tool:GetAttributes()) do
+		if hasKeyword(attr, KEYWORDS[side]) then
+			score += 5
+		end
+	end
+
+	for _, d in ipairs(tool:GetDescendants()) do
+		if hasKeyword(d.Name, KEYWORDS[side]) then
+			score += 1
+		end
+	end
+
+	return score
+end
+
+local function findDragon(side)
 	local backpack = player:WaitForChild("Backpack")
+	local best, bestScore = nil, 0
 
 	for _, tool in ipairs(backpack:GetChildren()) do
-		if tool:IsA("Tool") and tool.Name:lower():find("dragon") then
-			if tool.Name:lower():find(typeName) then
-				return tool
+		if tool:IsA("Tool") then
+			local s = scoreTool(tool, side)
+			if s > bestScore then
+				bestScore = s
+				best = tool
 			end
 		end
 	end
 
-	return nil
+	return best
 end
 
 --------------------------------------------------
--- EQUIP LOGIC (REAL, NOT VISUAL)
+-- REAL CLIENT EQUIP
 --------------------------------------------------
-local function equipDragon(typeName)
+local function equipDragon(side)
 	local humanoid = getHumanoid()
-	local tool = findDragonTool(typeName)
+	local tool = findDragon(side)
 
 	if not tool then
-		warn("❌ No Dragon " .. typeName .. " found")
+		warn("❌ Dragon", side, "not found")
 		return
 	end
 
 	humanoid:UnequipTools()
 	humanoid:EquipTool(tool)
 
-	print("🐉 Equipped Dragon", typeName)
+	print("🐉 Equipped", side, "→", tool.Name)
 end
 
 --------------------------------------------------
--- BUILD GUI (INSTANT)
+-- BUILD EXPLOIT-STYLE GUI
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "DragonEquipUI"
+gui.Name = "ExploitDragonUI"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = playerGui
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(280, 160)
-frame.Position = UDim2.fromOffset(30, 300)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(260, 40)
+main.Position = UDim2.fromOffset(30, 260)
+main.BackgroundColor3 = Color3.fromRGB(12,12,12)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,10)
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.fromOffset(280, 36)
-title.BackgroundTransparency = 1
-title.Text = "Dragon Selector"
-title.Font = Enum.Font.Code
-title.TextSize = 18
-title.TextColor3 = Color3.fromRGB(0,255,140)
-title.Parent = frame
+local header = Instance.new("TextButton")
+header.Size = UDim2.fromScale(1,1)
+header.BackgroundTransparency = 1
+header.Text = "🐉 Dragon Selector  ▾"
+header.Font = Enum.Font.Code
+header.TextSize = 16
+header.TextColor3 = Color3.fromRGB(0,255,140)
+header.Parent = main
 
 --------------------------------------------------
--- BUTTONS
+-- DROPDOWN
 --------------------------------------------------
-local function makeButton(text, y, callback)
+local dropdown = Instance.new("Frame")
+dropdown.Size = UDim2.fromOffset(260, 0)
+dropdown.Position = UDim2.fromOffset(0, 40)
+dropdown.BackgroundColor3 = Color3.fromRGB(18,18,18)
+dropdown.BorderSizePixel = 0
+dropdown.ClipsDescendants = true
+dropdown.Parent = main
+Instance.new("UICorner", dropdown).CornerRadius = UDim.new(0,10)
+
+local opened = false
+
+local function makeOption(text, y, callback)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.fromOffset(240, 36)
-	btn.Position = UDim2.fromOffset(20, y)
+	btn.Position = UDim2.fromOffset(10, y)
+	btn.BackgroundColor3 = Color3.fromRGB(28,28,28)
 	btn.Text = text
 	btn.Font = Enum.Font.Code
-	btn.TextSize = 16
-	btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	btn.TextSize = 15
 	btn.TextColor3 = Color3.new(1,1,1)
-	btn.Parent = frame
-
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+	btn.Parent = dropdown
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
 	btn.MouseButton1Click:Connect(callback)
 end
 
-makeButton("Equip Dragon East", 50, function()
+makeOption("Equip Dragon East", 10, function()
 	equipDragon("east")
 end)
 
-makeButton("Equip Dragon West", 95, function()
+makeOption("Equip Dragon West", 56, function()
 	equipDragon("west")
 end)
 
 --------------------------------------------------
--- AUTO RE-EQUIP ON RESPAWN (OPTIONAL)
+-- TOGGLE
 --------------------------------------------------
-player.CharacterAdded:Connect(function()
-	task.wait(0.3)
-	-- re-equip last used if you want
+header.MouseButton1Click:Connect(function()
+	opened = not opened
+	header.Text = opened
+		and "🐉 Dragon Selector  ▴"
+		or  "🐉 Dragon Selector  ▾"
+
+	dropdown:TweenSize(
+		opened and UDim2.fromOffset(260, 102) or UDim2.fromOffset(260, 0),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quad,
+		0.15,
+		true
+	)
 end)
 
-print("✅ Dragon equip UI loaded instantly")
+print("✅ Exploit-style Dragon dropdown loaded instantly")
