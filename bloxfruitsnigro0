@@ -5,40 +5,53 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local equipEvent = ReplicatedStorage:WaitForChild("EquipDragon")
 
-local function fixButtons()
-	for _, obj in ipairs(playerGui:GetDescendants()) do
-		-- BUTTON THAT USED TO ASK FOR ROBUX
+--------------------------------------------------
+-- FAST CHECK
+--------------------------------------------------
+local function handleButton(btn)
+	if btn:GetAttribute("Handled") then return end
+	btn:SetAttribute("Handled", true)
+
+	local text = string.lower(btn.Text)
+
+	-- REMOVE BUY / ROBUX BUTTONS
+	if text:find("buy") or text:find("robux") then
+		btn.Text = "Owned"
+		btn.Active = false
+		btn.AutoButtonColor = false
+		return
+	end
+
+	-- EQUIP BUTTON
+	if text == "equip" then
+		btn.Visible = true
+		btn.Active = true
+		btn.AutoButtonColor = true
+
+		btn.MouseButton1Click:Connect(function()
+			equipEvent:FireServer()
+			btn.Text = "Equipped"
+		end)
+	end
+end
+
+--------------------------------------------------
+-- INITIAL FAST PASS (ONCE)
+--------------------------------------------------
+for _, gui in ipairs(playerGui:GetChildren()) do
+	for _, obj in ipairs(gui:GetDescendants()) do
 		if obj:IsA("TextButton") then
-			-- Replace buy text
-			if string.find(string.lower(obj.Text), "buy") 
-			or string.find(string.lower(obj.Text), "robux") then
-				obj.Text = "Owned"
-				obj.Active = false
-				obj.AutoButtonColor = false
-			end
-
-			-- Real equip button
-			if string.lower(obj.Text) == "equip" then
-				obj.Visible = true
-				obj.Active = true
-				obj.AutoButtonColor = true
-
-				if not obj:GetAttribute("Hooked") then
-					obj:SetAttribute("Hooked", true)
-
-					obj.MouseButton1Click:Connect(function()
-						equipEvent:FireServer()
-						obj.Text = "Equipped"
-					end)
-				end
-			end
+			handleButton(obj)
 		end
 	end
 end
 
-fixButtons()
-
-playerGui.DescendantAdded:Connect(function()
-	task.wait()
-	fixButtons()
+--------------------------------------------------
+-- HANDLE ONLY NEW OBJECTS (NO RESCAN)
+--------------------------------------------------
+playerGui.DescendantAdded:Connect(function(obj)
+	if obj:IsA("TextButton") then
+		-- defer = runs next frame, UI already ready
+		task.defer(handleButton, obj)
+	end
 end)
