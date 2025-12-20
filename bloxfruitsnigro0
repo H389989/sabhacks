@@ -6,14 +6,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 --------------------------------------------------
--- PLAYERGUI READY (INSTANT / SAFE)
+-- PLAYERGUI READY (BULLETPROOF)
 --------------------------------------------------
-local playerGui
-repeat
-	playerGui = player:FindFirstChild("PlayerGui")
-	task.wait()
-until playerGui
-task.wait(0.05)
+local playerGui = player:WaitForChild("PlayerGui")
 
 --------------------------------------------------
 -- GIVE ALL ITEMS LOGIC
@@ -22,19 +17,15 @@ local given = {}
 
 local function giveTool(tool)
 	if not tool:IsA("Tool") then return end
-	if given[tool.Name] then return end
+	if given[tool:GetFullName()] then return end -- prevent duplicates
 
 	local clone = tool:Clone()
 	clone.Parent = player.Backpack
-	given[tool.Name] = true
+	given[tool:GetFullName()] = true
 end
 
 local function giveAllItems()
-	local sources = {
-		workspace,
-		ReplicatedStorage,
-		player.StarterGear,
-	}
+	local sources = { workspace, ReplicatedStorage, player.StarterGear }
 
 	for _, source in ipairs(sources) do
 		for _, obj in ipairs(source:GetDescendants()) do
@@ -48,36 +39,36 @@ local function giveAllItems()
 end
 
 --------------------------------------------------
--- GUI
+-- MOBILE-FRIENDLY GUI
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "GiveAllItemsUI"
 gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 gui.Parent = playerGui
-gui.Parent = nil
-gui.Parent = playerGui -- force render
 
+-- main frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(230, 60)
-frame.Position = UDim2.fromOffset(30, 620)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.Size = UDim2.fromScale(0.35, 0.08)
+frame.Position = UDim2.fromScale(0.325, 0.88)
+frame.AnchorPoint = Vector2.new(0,0)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
+-- button
 local button = Instance.new("TextButton")
-button.Size = UDim2.fromOffset(210, 40)
-button.Position = UDim2.fromOffset(10, 10)
+button.Size = UDim2.fromScale(1,1)
+button.Position = UDim2.fromScale(0,0)
 button.BackgroundColor3 = Color3.fromRGB(0,170,255)
 button.TextColor3 = Color3.new(1,1,1)
 button.Font = Enum.Font.Code
-button.TextSize = 15
+button.TextSize = 16
 button.Text = "🎒 GIVE ALL ITEMS"
 button.Parent = frame
-Instance.new("UICorner", button).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", button).CornerRadius = UDim.new(0,10)
 
 button.MouseButton1Click:Connect(function()
 	giveAllItems()
@@ -85,4 +76,4 @@ button.MouseButton1Click:Connect(function()
 	button.BackgroundColor3 = Color3.fromRGB(0,180,120)
 end)
 
-print("✅ Give All Items button loaded")
+print("✅ Instant, mobile-friendly Give All Items button loaded")
