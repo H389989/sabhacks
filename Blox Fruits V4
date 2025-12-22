@@ -1,0 +1,46 @@
+-- GetAllTools.client.lua
+-- StarterPlayerScript ONLY
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- ===== GUI =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "ExploitGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.fromScale(0.2, 0.08)
+button.Position = UDim2.fromScale(0.4, 0.85)
+button.Text = "GET ALL TOOLS"
+button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+button.TextColor3 = Color3.fromRGB(0, 255, 0)
+button.TextScaled = true
+button.Parent = gui
+
+-- ===== TOOL GRABBER =====
+local grabbed = {}
+
+local function grabTool(tool)
+    if not tool:IsA("Tool") then return end
+    if grabbed[tool.Name] then return end
+
+    grabbed[tool.Name] = true
+    local clone = tool:Clone()
+    clone.Parent = player.Backpack
+end
+
+local function scan(root)
+    for _, obj in ipairs(root:GetDescendants()) do
+        grabTool(obj)
+    end
+end
+
+button.MouseButton1Click:Connect(function()
+    -- Scan everything the client can see
+    scan(game)
+    print("[EXPLOITER MODE] Tools collected:", table.getn(grabbed))
+end)
+
+print("[EXPLOITER MODE] Get All Tools button loaded")
