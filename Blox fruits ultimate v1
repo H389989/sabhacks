@@ -1,0 +1,88 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI CREATION
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FakeExploitGUI"
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 250, 0, 150)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = mainFrame
+
+-- BUTTON CREATOR
+local function createButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Text = name
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Parent = mainFrame
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- TOGGLE VARIABLES
+local dropItemsToggle = false
+local teleportItemsToggle = false
+
+-- BUTTONS
+createButton("Toggle Force Drop All Items", function()
+    dropItemsToggle = not dropItemsToggle
+    print("Force Drop All Items:", dropItemsToggle)
+    
+    if dropItemsToggle then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                -- Trigger the player to drop all items
+                -- Here you would call your game's drop function
+                print("Dropping items for", player.Name)
+            end
+        end
+    end
+end)
+
+createButton("Toggle Teleport All Items To Me", function()
+    teleportItemsToggle = not teleportItemsToggle
+    print("Teleport All Items:", teleportItemsToggle)
+    
+    if teleportItemsToggle then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                -- Here you would teleport the items to the LocalPlayer
+                print("Teleporting items from", player.Name)
+            end
+        end
+    end
+end)
+
+-- OPTIONAL: Auto-update toggles in a loop
+while true do
+    task.wait(1)
+    if dropItemsToggle then
+        -- simulate continuous effect
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                print("Dropping items for", player.Name)
+            end
+        end
+    end
+    if teleportItemsToggle then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                print("Teleporting items from", player.Name)
+            end
+        end
+    end
+end
