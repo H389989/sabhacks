@@ -1,89 +1,92 @@
+-- StarterPlayerScripts/FakeExploit.client.lua
+
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
 
-local player = Players.LocalPlayer
-local event = ReplicatedStorage:WaitForChild("TakeAllItems")
+-- ================= GUI =================
+local gui = Instance.new("ScreenGui")
+gui.Name = "FakeExploitGUI"
+gui.ResetOnSpawn = false
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- GUI
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "BuiltInExploit"
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 240)
-frame.Position = UDim2.new(0.5, -150, 0.5, -120)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 260)
+frame.Position = UDim2.new(0.5, -160, 0.5, -130)
+frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+frame.Parent = gui
 
--- STATES
-local autoSteal = false
-local autoDrop = false
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "INTERNAL INVENTORY INJECTOR"
+title.Font = Enum.Font.Code
+title.TextSize = 14
+title.TextColor3 = Color3.fromRGB(200, 0, 255)
 
--- BUTTON CREATOR
-local function makeButton(text, y, callback)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(1, -20, 0, 45)
-	b.Position = UDim2.new(0, 10, 0, y)
-	b.Text = text
-	b.Font = Enum.Font.Code
-	b.TextSize = 16
-	b.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	b.TextColor3 = Color3.new(1,1,1)
-	b.MouseButton1Click:Connect(callback)
-	return b
+local log = Instance.new("TextLabel", frame)
+log.Position = UDim2.new(0, 10, 0, 40)
+log.Size = UDim2.new(1, -20, 0, 150)
+log.BackgroundColor3 = Color3.fromRGB(15,15,15)
+log.TextXAlignment = Left
+log.TextYAlignment = Top
+log.TextWrapped = true
+log.TextSize = 13
+log.Font = Enum.Font.Code
+log.TextColor3 = Color3.fromRGB(0,255,100)
+log.Text = "[READY]\n"
+log.Parent = frame
+
+local function addLog(text)
+	log.Text ..= text .. "\n"
 end
 
--- STATUS LABEL
-local status = Instance.new("TextLabel", frame)
-status.Size = UDim2.new(1, -20, 0, 30)
-status.Position = UDim2.new(0, 10, 0, 190)
-status.BackgroundTransparency = 1
-status.Font = Enum.Font.Code
-status.TextSize = 14
-status.TextColor3 = Color3.fromRGB(255,255,255)
-status.Text = "AUTO‑STEAL: OFF | AUTO‑DROP: OFF"
+-- ================= CORE LOGIC =================
+local function fakeStealAllItems()
+	addLog("[SCAN] Enumerating players...")
 
-local function updateStatus()
-	status.Text =
-		("AUTO‑STEAL: %s | AUTO‑DROP: %s")
-		:format(autoSteal and "ON" or "OFF", autoDrop and "ON" or "OFF")
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			addLog("[TARGET] " .. plr.Name)
+
+			-- Backpack tools
+			if plr:FindFirstChild("Backpack") then
+				for _, tool in ipairs(plr.Backpack:GetChildren()) do
+					if tool:IsA("Tool") then
+						local clone = tool:Clone()
+						clone.Parent = LocalPlayer.Backpack
+						addLog("  + Injected Tool: " .. tool.Name)
+					end
+				end
+			end
+
+			-- Equipped tools
+			if plr.Character then
+				for _, tool in ipairs(plr.Character:GetChildren()) do
+					if tool:IsA("Tool") then
+						local clone = tool:Clone()
+						clone.Parent = LocalPlayer.Backpack
+						addLog("  + Injected Equipped: " .. tool.Name)
+					end
+				end
+			end
+		end
+	end
+
+	addLog("[SUCCESS] Inventory injection complete.")
 end
 
--- 🔴 AUTO STEAL TOGGLE
-makeButton("🔴 TOGGLE AUTO‑STEAL", 15, function()
-	autoSteal = not autoSteal
-	updateStatus()
+-- ================= BUTTON =================
+local button = Instance.new("TextButton", frame)
+button.Position = UDim2.new(0, 10, 0, 200)
+button.Size = UDim2.new(1, -20, 0, 45)
+button.Text = "STEAL ALL PLAYER ITEMS"
+button.Font = Enum.Font.Code
+button.TextSize = 16
+button.BackgroundColor3 = Color3.fromRGB(60,0,90)
+button.TextColor3 = Color3.new(1,1,1)
+button.Parent = frame
 
-	if autoSteal then
-		task.spawn(function()
-			while autoSteal do
-				event:FireServer("steal")
-				task.wait(1)
-			end
-		end)
-	end
-end)
-
--- 🟣 AUTO DROP TOGGLE
-makeButton("🟣 TOGGLE AUTO‑DROP", 70, function()
-	autoDrop = not autoDrop
-	updateStatus()
-
-	if autoDrop then
-		task.spawn(function()
-			while autoDrop do
-				event:FireServer("drop")
-				task.wait(1)
-			end
-		end)
-	end
-end)
-
--- ⚡ MANUAL BUTTONS
-makeButton("⚡ STEAL ONCE", 125, function()
-	event:FireServer("steal")
-end)
-
-makeButton("⚡ DROP ONCE", 160, function()
-	event:FireServer("drop")
-end)
+button.MouseButton1Click:Connect(fakeStealAllItems)
