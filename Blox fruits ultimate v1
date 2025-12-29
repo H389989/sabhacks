@@ -1,81 +1,131 @@
--- StarterPlayerScripts/MobileFakeExploit.client.lua
+-- StarterPlayerScripts/FakeAutoSteal.client.lua
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
--- ================= GUI =================
+-- ================= GUI ROOT =================
 local gui = Instance.new("ScreenGui")
-gui.Name = "MobileExploitGUI"
+gui.Name = "FakeExploitGUI"
 gui.ResetOnSpawn = false
 gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.8, 0.45)
-frame.Position = UDim2.fromScale(0.1, 0.25)
-frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
-frame.BorderSizePixel = 0
-frame.Parent = gui
+-- ================= DRAGGABLE BUTTON FRAME =================
+local dragFrame = Instance.new("Frame")
+dragFrame.Size = UDim2.new(0, 280, 0, 70)
+dragFrame.Position = UDim2.new(0.5, -140, 1, -100)
+dragFrame.AnchorPoint = Vector2.new(0.5, 1)
+dragFrame.BackgroundColor3 = Color3.fromRGB(60, 0, 100)
+dragFrame.Parent = gui
+dragFrame.Active = true
 
--- Rounded corners
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 18)
+local frameCorner = Instance.new("UICorner", dragFrame)
+frameCorner.CornerRadius = UDim.new(0, 16)
 
--- Title
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0.15, 0)
-title.BackgroundTransparency = 1
-title.Text = "INTERNAL INVENTORY INJECTOR"
-title.Font = Enum.Font.Code
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(180, 0, 255)
+-- ================= BUTTON =================
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, 0, 1, 0)
+button.BackgroundTransparency = 1
+button.Text = "AUTO‑STEAL: OFF"
+button.Font = Enum.Font.Code
+button.TextSize = 20
+button.TextColor3 = Color3.new(1,1,1)
+button.Parent = dragFrame
 
--- Log
-local log = Instance.new("TextLabel", frame)
-log.Position = UDim2.fromScale(0.05, 0.18)
-log.Size = UDim2.fromScale(0.9, 0.45)
-log.BackgroundColor3 = Color3.fromRGB(15,15,15)
-log.TextXAlignment = Left
-log.TextYAlignment = Top
-log.TextWrapped = true
-log.Font = Enum.Font.Code
-log.TextScaled = true
-log.TextColor3 = Color3.fromRGB(0,255,120)
-log.Text = "[READY]\n"
-log.Parent = frame
+-- ================= STATUS INDICATOR =================
+local statusFrame = Instance.new("Frame")
+statusFrame.Size = UDim2.new(0, 140, 0, 36)
+statusFrame.Position = UDim2.new(1, 8, 0.5, -18)
+statusFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+statusFrame.Parent = dragFrame
 
-local logCorner = Instance.new("UICorner", log)
-logCorner.CornerRadius = UDim.new(0, 12)
+local statusCorner = Instance.new("UICorner", statusFrame)
+statusCorner.CornerRadius = UDim.new(0, 12)
 
-local function addLog(t)
-	log.Text ..= t .. "\n"
+local dot = Instance.new("Frame")
+dot.Size = UDim2.new(0, 12, 0, 12)
+dot.Position = UDim2.new(0, 10, 0.5, -6)
+dot.BackgroundColor3 = Color3.fromRGB(255,60,60)
+dot.Parent = statusFrame
+
+local dotCorner = Instance.new("UICorner", dot)
+dotCorner.CornerRadius = UDim.new(1, 0)
+
+local statusText = Instance.new("TextLabel")
+statusText.Position = UDim2.new(0, 28, 0, 0)
+statusText.Size = UDim2.new(1, -28, 1, 0)
+statusText.BackgroundTransparency = 1
+statusText.Font = Enum.Font.Code
+statusText.TextSize = 14
+statusText.TextXAlignment = Left
+statusText.TextColor3 = Color3.new(1,1,1)
+statusText.Text = "OFF | 0 items"
+statusText.Parent = statusFrame
+
+-- ================= DRAG LOGIC (MOBILE + PC) =================
+local dragging, dragStart, startPos
+
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+	dragFrame.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
 end
 
--- ================= CORE =================
+dragFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = dragFrame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch) then
+		updateDrag(input)
+	end
+end)
+
+-- ================= CORE LOGIC =================
 local running = false
-local loopDelay = 1 -- seconds
+local loopDelay = 1
+
+local function countTools()
+	local count = 0
+	for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+		if t:IsA("Tool") then
+			count += 1
+		end
+	end
+	return count
+end
 
 local function fakeStealOnce()
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer then
-			addLog("[SCAN] " .. plr.Name)
-
-			-- Backpack
 			if plr:FindFirstChild("Backpack") then
 				for _, tool in ipairs(plr.Backpack:GetChildren()) do
 					if tool:IsA("Tool") then
 						tool:Clone().Parent = LocalPlayer.Backpack
-						addLog(" + " .. tool.Name)
 					end
 				end
 			end
 
-			-- Equipped
 			if plr.Character then
 				for _, tool in ipairs(plr.Character:GetChildren()) do
 					if tool:IsA("Tool") then
 						tool:Clone().Parent = LocalPlayer.Backpack
-						addLog(" + " .. tool.Name .. " (equipped)")
 					end
 				end
 			end
@@ -83,29 +133,25 @@ local function fakeStealOnce()
 	end
 end
 
--- ================= BUTTON =================
-local button = Instance.new("TextButton", frame)
-button.Position = UDim2.fromScale(0.1, 0.7)
-button.Size = UDim2.fromScale(0.8, 0.2)
-button.Font = Enum.Font.Code
-button.TextScaled = true
-button.BackgroundColor3 = Color3.fromRGB(90, 0, 130)
-button.TextColor3 = Color3.new(1,1,1)
-button.Text = "AUTO‑STEAL: OFF"
-button.Parent = frame
-
-local btnCorner = Instance.new("UICorner", button)
-btnCorner.CornerRadius = UDim.new(0, 14)
-
+-- ================= TOGGLE =================
 button.Activated:Connect(function()
 	running = not running
-	button.Text = running and "AUTO‑STEAL: ON" or "AUTO‑STEAL: OFF"
-	addLog(running and "[LOOP ENABLED]" or "[LOOP DISABLED]")
+
+	if running then
+		button.Text = "AUTO‑STEAL: ON"
+		dot.BackgroundColor3 = Color3.fromRGB(60,255,60)
+	else
+		button.Text = "AUTO‑STEAL: OFF"
+		dot.BackgroundColor3 = Color3.fromRGB(255,60,60)
+	end
+
+	statusText.Text = (running and "ON" or "OFF") .. " | " .. countTools() .. " items"
 
 	if running then
 		task.spawn(function()
 			while running do
 				fakeStealOnce()
+				statusText.Text = "ON | " .. countTools() .. " items"
 				task.wait(loopDelay)
 			end
 		end)
