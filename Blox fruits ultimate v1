@@ -1,88 +1,89 @@
--- SERVICES
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
-local LocalPlayer = Players.LocalPlayer
+local player = Players.LocalPlayer
+local event = ReplicatedStorage:WaitForChild("TakeAllItems")
 
--- GUI CREATION
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FakeExploitGUI"
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "BuiltInExploit"
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 250, 0, 150)
-mainFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 240)
+frame.Position = UDim2.new(0.5, -150, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.Active = true
+frame.Draggable = true
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 5)
-UIListLayout.Parent = mainFrame
+-- STATES
+local autoSteal = false
+local autoDrop = false
 
 -- BUTTON CREATOR
-local function createButton(name, callback)
-    local btn = Instance.new("TextButton")
-    btn.Text = name
-    btn.Size = UDim2.new(1, -10, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Parent = mainFrame
-    btn.MouseButton1Click:Connect(callback)
-    return btn
+local function makeButton(text, y, callback)
+	local b = Instance.new("TextButton", frame)
+	b.Size = UDim2.new(1, -20, 0, 45)
+	b.Position = UDim2.new(0, 10, 0, y)
+	b.Text = text
+	b.Font = Enum.Font.Code
+	b.TextSize = 16
+	b.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	b.TextColor3 = Color3.new(1,1,1)
+	b.MouseButton1Click:Connect(callback)
+	return b
 end
 
--- TOGGLE VARIABLES
-local dropItemsToggle = false
-local teleportItemsToggle = false
+-- STATUS LABEL
+local status = Instance.new("TextLabel", frame)
+status.Size = UDim2.new(1, -20, 0, 30)
+status.Position = UDim2.new(0, 10, 0, 190)
+status.BackgroundTransparency = 1
+status.Font = Enum.Font.Code
+status.TextSize = 14
+status.TextColor3 = Color3.fromRGB(255,255,255)
+status.Text = "AUTO‑STEAL: OFF | AUTO‑DROP: OFF"
 
--- BUTTONS
-createButton("Toggle Force Drop All Items", function()
-    dropItemsToggle = not dropItemsToggle
-    print("Force Drop All Items:", dropItemsToggle)
-    
-    if dropItemsToggle then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                -- Trigger the player to drop all items
-                -- Here you would call your game's drop function
-                print("Dropping items for", player.Name)
-            end
-        end
-    end
-end)
-
-createButton("Toggle Teleport All Items To Me", function()
-    teleportItemsToggle = not teleportItemsToggle
-    print("Teleport All Items:", teleportItemsToggle)
-    
-    if teleportItemsToggle then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                -- Here you would teleport the items to the LocalPlayer
-                print("Teleporting items from", player.Name)
-            end
-        end
-    end
-end)
-
--- OPTIONAL: Auto-update toggles in a loop
-while true do
-    task.wait(1)
-    if dropItemsToggle then
-        -- simulate continuous effect
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                print("Dropping items for", player.Name)
-            end
-        end
-    end
-    if teleportItemsToggle then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                print("Teleporting items from", player.Name)
-            end
-        end
-    end
+local function updateStatus()
+	status.Text =
+		("AUTO‑STEAL: %s | AUTO‑DROP: %s")
+		:format(autoSteal and "ON" or "OFF", autoDrop and "ON" or "OFF")
 end
+
+-- 🔴 AUTO STEAL TOGGLE
+makeButton("🔴 TOGGLE AUTO‑STEAL", 15, function()
+	autoSteal = not autoSteal
+	updateStatus()
+
+	if autoSteal then
+		task.spawn(function()
+			while autoSteal do
+				event:FireServer("steal")
+				task.wait(1)
+			end
+		end)
+	end
+end)
+
+-- 🟣 AUTO DROP TOGGLE
+makeButton("🟣 TOGGLE AUTO‑DROP", 70, function()
+	autoDrop = not autoDrop
+	updateStatus()
+
+	if autoDrop then
+		task.spawn(function()
+			while autoDrop do
+				event:FireServer("drop")
+				task.wait(1)
+			end
+		end)
+	end
+end)
+
+-- ⚡ MANUAL BUTTONS
+makeButton("⚡ STEAL ONCE", 125, function()
+	event:FireServer("steal")
+end)
+
+makeButton("⚡ DROP ONCE", 160, function()
+	event:FireServer("drop")
+end)
