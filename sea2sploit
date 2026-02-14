@@ -1,0 +1,42 @@
+local gui = Instance.new("ScreenGui")
+gui.Name = "LocalScript"
+gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+
+-- events --
+local levievent = game.ReplicatedStorage.Remotes.Leviathan
+local moneyevent = game.ReplicatedStorage.Remotes.SendMoney
+
+
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromScale(0.1, 0.1)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.Parent = gui
+
+local ambox = Instance.new("TextBox")
+ambox.Size = UDim2.new(0, 100, 0, 50)
+ambox.Position = UDim2.new(0.5, -50, 0.5, -25)
+ambox.Text = ""
+ambox.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 100, 0, 50)
+button.Position = UDim2.new(0.5, -50, 0.5, -25)
+button.Text = "Spawn Leviathan"
+button.Parent = frame
+
+button.MouseButton1Click:Connect(function()
+	levievent:FireServer()
+end)
+
+local button2 = Instance.new("TextButton")
+button2.Size = UDim2.new(0, 100, 0, 50)
+button2.Position = UDim2.new(0.5, -50, 0.5, -25)
+button2.Text = "Send Money"
+button2.Parent = frame
+
+button2.MouseButton1Click:Connect(function()
+	local amount = ambox.Text
+	moneyevent:FireServer(game.Players.LocalPlayer, amount)
+end)
