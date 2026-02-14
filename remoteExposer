@@ -1,0 +1,80 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RemoteViewer"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromScale(0.5, 0.6)
+frame.Position = UDim2.fromScale(0.25, 0.2)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Parent = gui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.fromScale(1, 0.08)
+title.BackgroundTransparency = 1
+title.Text = "Client Visible Remotes"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.Parent = frame
+
+local scrolling = Instance.new("ScrollingFrame")
+scrolling.Position = UDim2.fromScale(0, 0.08)
+scrolling.Size = UDim2.fromScale(1, 0.92)
+scrolling.CanvasSize = UDim2.new(0,0,0,0)
+scrolling.ScrollBarThickness = 6
+scrolling.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0,4)
+layout.Parent = scrolling
+
+local function getFullPath(obj)
+	local path = obj.Name
+	local parent = obj.Parent
+
+	while parent and parent ~= game do
+		path = parent.Name .. "." .. path
+		parent = parent.Parent
+	end
+
+	return "game." .. path
+end
+
+local function refresh()
+	-- clear labels only (not layout)
+	for _, child in ipairs(scrolling:GetChildren()) do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+
+	for _, obj in ipairs(game:GetDescendants()) do
+		if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.new(1, -10, 0, 24)
+			label.BackgroundTransparency = 1
+			label.TextWrapped = true
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.TextColor3 = obj:IsA("RemoteEvent") 
+				and Color3.fromRGB(0,255,150)
+				or Color3.fromRGB(0,170,255)
+
+			label.Text = "[" .. obj.ClassName .. "]  " .. getFullPath(obj)
+			label.Parent = scrolling
+		end
+	end
+
+	task.wait()
+	scrolling.CanvasSize = UDim2.new(0,0,0, layout.AbsoluteContentSize.Y)
+end
+
+refresh()
+
+game.DescendantAdded:Connect(function(obj)
+	if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+		refresh()
+	end
+end)
