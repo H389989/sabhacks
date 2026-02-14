@@ -1,42 +1,62 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+-- GUI setup
 local gui = Instance.new("ScreenGui")
-gui.Name = "LocalScript"
-gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+gui.Name = "LocalScriptGUI"
+gui.Parent = player:WaitForChild("PlayerGui")
 
+-- RemoteEvents
+local levievent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Leviathan")
+local moneyevent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SendMoney")
 
--- events --
-local levievent = game.ReplicatedStorage.Remotes.Leviathan
-local moneyevent = game.ReplicatedStorage.Remotes.SendMoney
-
-
-
+-- Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.1, 0.1)
-frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.Size = UDim2.fromScale(0.2, 0.25)
+frame.Position = UDim2.fromScale(0.4, 0.35)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.BorderSizePixel = 2
 frame.Parent = gui
 
+-- TextBox for money amount
 local ambox = Instance.new("TextBox")
-ambox.Size = UDim2.new(0, 100, 0, 50)
-ambox.Position = UDim2.new(0.5, -50, 0.5, -25)
+ambox.Size = UDim2.new(0.8, 0, 0, 40)
+ambox.Position = UDim2.new(0.1, 0, 0.05, 0)
+ambox.PlaceholderText = "Enter amount"
 ambox.Text = ""
+ambox.ClearTextOnFocus = true
+ambox.TextScaled = true
 ambox.Parent = frame
 
+-- Spawn Leviathan Button
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 100, 0, 50)
-button.Position = UDim2.new(0.5, -50, 0.5, -25)
+button.Size = UDim2.new(0.8, 0, 0, 40)
+button.Position = UDim2.new(0.1, 0, 0.3, 0)
 button.Text = "Spawn Leviathan"
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.TextScaled = true
 button.Parent = frame
 
 button.MouseButton1Click:Connect(function()
-	levievent:FireServer()
+    levievent:FireServer()
 end)
 
+-- Send Money Button
 local button2 = Instance.new("TextButton")
-button2.Size = UDim2.new(0, 100, 0, 50)
-button2.Position = UDim2.new(0.5, -50, 0.5, -25)
+button2.Size = UDim2.new(0.8, 0, 0, 40)
+button2.Position = UDim2.new(0.1, 0, 0.55, 0)
 button2.Text = "Send Money"
+button2.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+button2.TextScaled = true
 button2.Parent = frame
 
 button2.MouseButton1Click:Connect(function()
-	local amount = ambox.Text
-	moneyevent:FireServer(game.Players.LocalPlayer, amount)
+    local amount = tonumber(ambox.Text)
+    if amount and amount > 0 then
+        -- Only send the amount; server knows who called
+        moneyevent:FireServer(amount)
+    else
+        warn("Invalid amount entered!")
+    end
 end)
