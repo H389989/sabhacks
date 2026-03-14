@@ -2,21 +2,22 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Create GUI
+-- MAIN GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "GUI_Explorer"
+screenGui.Name = "AdvancedGUIExplorer"
+screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Main frame
+-- MAIN FRAME
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 400)
-frame.Position = UDim2.new(0, 50, 0, 50)
+frame.Size = UDim2.new(0,400,0,500)
+frame.Position = UDim2.new(0,100,0,100)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
--- Title
+-- TITLE
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,30)
 title.BackgroundColor3 = Color3.fromRGB(20,20,20)
@@ -24,48 +25,105 @@ title.Text = "GUI Explorer"
 title.TextColor3 = Color3.new(1,1,1)
 title.Parent = frame
 
--- Scroll area
+-- SEARCH BAR
+local search = Instance.new("TextBox")
+search.Size = UDim2.new(1,-10,0,30)
+search.Position = UDim2.new(0,5,0,35)
+search.PlaceholderText = "Search GUIs..."
+search.BackgroundColor3 = Color3.fromRGB(45,45,45)
+search.TextColor3 = Color3.new(1,1,1)
+search.Parent = frame
+
+-- SCROLL FRAME
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1,0,1,-30)
-scroll.Position = UDim2.new(0,0,0,30)
+scroll.Size = UDim2.new(1,-10,1,-80)
+scroll.Position = UDim2.new(0,5,0,70)
 scroll.BackgroundColor3 = Color3.fromRGB(40,40,40)
 scroll.ScrollBarThickness = 6
 scroll.Parent = frame
 
--- Layout
 local layout = Instance.new("UIListLayout")
 layout.Parent = scroll
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- AUTO UPDATE SCROLL SIZE
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
 end)
 
--- Function to add GUI items
-local function addGui(gui)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1,-5,0,25)
-	button.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	button.TextColor3 = Color3.new(1,1,1)
-	button.Text = gui.Name
-	button.Parent = scroll
+local guiEntries = {}
 
-	button.MouseButton1Click:Connect(function()
-		print("Selected:", gui:GetFullName())
+-- CREATE ENTRY
+local function createEntry(gui)
+	local entry = Instance.new("Frame")
+	entry.Size = UDim2.new(1,-5,0,30)
+	entry.BackgroundColor3 = Color3.fromRGB(55,55,55)
+	entry.Parent = scroll
+	
+	local name = Instance.new("TextLabel")
+	name.Size = UDim2.new(0.5,0,1,0)
+	name.BackgroundTransparency = 1
+	name.Text = gui.Name
+	name.TextColor3 = Color3.new(1,1,1)
+	name.TextXAlignment = Enum.TextXAlignment.Left
+	name.Parent = entry
+	
+	-- ENABLE / DISABLE BUTTON
+	local toggle = Instance.new("TextButton")
+	toggle.Size = UDim2.new(0,70,0,25)
+	toggle.Position = UDim2.new(0.55,0,0,2)
+	toggle.Text = "Toggle"
+	toggle.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	toggle.TextColor3 = Color3.new(1,1,1)
+	toggle.Parent = entry
+	
+	toggle.MouseButton1Click:Connect(function()
+		if gui:IsA("ScreenGui") then
+			gui.Enabled = not gui.Enabled
+		elseif gui:IsA("GuiObject") then
+			gui.Visible = not gui.Visible
+		end
 	end)
+	
+	-- DELETE BUTTON
+	local delete = Instance.new("TextButton")
+	delete.Size = UDim2.new(0,60,0,25)
+	delete.Position = UDim2.new(1,-65,0,2)
+	delete.Text = "Delete"
+	delete.BackgroundColor3 = Color3.fromRGB(120,40,40)
+	delete.TextColor3 = Color3.new(1,1,1)
+	delete.Parent = entry
+	
+	delete.MouseButton1Click:Connect(function()
+		gui:Destroy()
+		entry:Destroy()
+	end)
+	
+	guiEntries[entry] = gui
 end
 
--- Scan existing GUIs
-for _,gui in pairs(playerGui:GetDescendants()) do
-	if gui:IsA("GuiObject") then
-		addGui(gui)
+-- ADD EXISTING GUIS
+for _,v in pairs(playerGui:GetDescendants()) do
+	if v:IsA("GuiObject") or v:IsA("ScreenGui") then
+		createEntry(v)
 	end
 end
 
--- Detect new GUIs
-playerGui.DescendantAdded:Connect(function(gui)
-	if gui:IsA("GuiObject") then
-		addGui(gui)
+-- ADD NEW GUIS LIVE
+playerGui.DescendantAdded:Connect(function(v)
+	if v:IsA("GuiObject") or v:IsA("ScreenGui") then
+		createEntry(v)
+	end
+end)
+
+-- SEARCH FUNCTION
+search:GetPropertyChangedSignal("Text"):Connect(function()
+	local text = string.lower(search.Text)
+	
+	for entry,gui in pairs(guiEntries) do
+		if string.find(string.lower(gui.Name), text) then
+			entry.Visible = true
+		else
+			entry.Visible = false
+		end
 	end
 end)
