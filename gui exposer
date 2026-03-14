@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Create main GUI
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "GUI_Explorer"
 screenGui.Parent = playerGui
@@ -24,39 +24,46 @@ title.Text = "GUI Explorer"
 title.TextColor3 = Color3.new(1,1,1)
 title.Parent = frame
 
--- Scrolling list
+-- Scroll area
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1,0,1,-30)
 scroll.Position = UDim2.new(0,0,0,30)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.BackgroundColor3 = Color3.fromRGB(40,40,40)
+scroll.ScrollBarThickness = 6
 scroll.Parent = frame
 
+-- Layout
 local layout = Instance.new("UIListLayout")
 layout.Parent = scroll
+layout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Function to add GUI buttons
+-- AUTO UPDATE SCROLL SIZE
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
+end)
+
+-- Function to add GUI items
 local function addGui(gui)
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1,-5,0,25)
-	button.Text = gui.Name
 	button.BackgroundColor3 = Color3.fromRGB(60,60,60)
 	button.TextColor3 = Color3.new(1,1,1)
+	button.Text = gui.Name
 	button.Parent = scroll
 
 	button.MouseButton1Click:Connect(function()
-		print("Selected GUI:", gui:GetFullName())
+		print("Selected:", gui:GetFullName())
 	end)
 end
 
--- Scan PlayerGui
+-- Scan existing GUIs
 for _,gui in pairs(playerGui:GetDescendants()) do
-	if gui:IsA("ScreenGui") or gui:IsA("Frame") or gui:IsA("TextLabel") or gui:IsA("TextButton") then
+	if gui:IsA("GuiObject") then
 		addGui(gui)
 	end
 end
 
--- Auto update if new GUIs appear
+-- Detect new GUIs
 playerGui.DescendantAdded:Connect(function(gui)
 	if gui:IsA("GuiObject") then
 		addGui(gui)
