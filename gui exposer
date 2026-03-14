@@ -2,22 +2,22 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- MAIN GUI
+-- GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdvancedGUIExplorer"
+screenGui.Name = "GUIExplorer"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- MAIN FRAME
+-- Window
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,400,0,500)
+frame.Size = UDim2.new(0,420,0,500)
 frame.Position = UDim2.new(0,100,0,100)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
--- TITLE
+-- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,30)
 title.BackgroundColor3 = Color3.fromRGB(20,20,20)
@@ -25,7 +25,7 @@ title.Text = "GUI Explorer"
 title.TextColor3 = Color3.new(1,1,1)
 title.Parent = frame
 
--- SEARCH BAR
+-- Search bar
 local search = Instance.new("TextBox")
 search.Size = UDim2.new(1,-10,0,30)
 search.Position = UDim2.new(0,5,0,35)
@@ -34,48 +34,52 @@ search.BackgroundColor3 = Color3.fromRGB(45,45,45)
 search.TextColor3 = Color3.new(1,1,1)
 search.Parent = frame
 
--- SCROLL FRAME
+-- ScrollFrame (MAIN LIST)
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1,-10,1,-80)
 scroll.Position = UDim2.new(0,5,0,70)
 scroll.BackgroundColor3 = Color3.fromRGB(40,40,40)
 scroll.ScrollBarThickness = 6
+scroll.BorderSizePixel = 0
 scroll.Parent = frame
 
+-- Layout for entries
 local layout = Instance.new("UIListLayout")
 layout.Parent = scroll
+layout.Padding = UDim.new(0,4)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
+-- Auto resize scrolling area
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
+	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
 end)
 
-local guiEntries = {}
+local entries = {}
 
--- CREATE ENTRY
+-- Create explorer entry
 local function createEntry(gui)
+
 	local entry = Instance.new("Frame")
-	entry.Size = UDim2.new(1,-5,0,30)
+	entry.Size = UDim2.new(1,-6,0,32)
 	entry.BackgroundColor3 = Color3.fromRGB(55,55,55)
 	entry.Parent = scroll
-	
+
 	local name = Instance.new("TextLabel")
-	name.Size = UDim2.new(0.5,0,1,0)
+	name.Size = UDim2.new(0.45,0,1,0)
 	name.BackgroundTransparency = 1
 	name.Text = gui.Name
 	name.TextColor3 = Color3.new(1,1,1)
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.Parent = entry
-	
-	-- ENABLE / DISABLE BUTTON
+
 	local toggle = Instance.new("TextButton")
-	toggle.Size = UDim2.new(0,70,0,25)
-	toggle.Position = UDim2.new(0.55,0,0,2)
+	toggle.Size = UDim2.new(0,70,0,24)
+	toggle.Position = UDim2.new(0.5,0,0,4)
 	toggle.Text = "Toggle"
 	toggle.BackgroundColor3 = Color3.fromRGB(70,70,70)
 	toggle.TextColor3 = Color3.new(1,1,1)
 	toggle.Parent = entry
-	
+
 	toggle.MouseButton1Click:Connect(function()
 		if gui:IsA("ScreenGui") then
 			gui.Enabled = not gui.Enabled
@@ -83,47 +87,48 @@ local function createEntry(gui)
 			gui.Visible = not gui.Visible
 		end
 	end)
-	
-	-- DELETE BUTTON
+
 	local delete = Instance.new("TextButton")
-	delete.Size = UDim2.new(0,60,0,25)
-	delete.Position = UDim2.new(1,-65,0,2)
+	delete.Size = UDim2.new(0,60,0,24)
+	delete.Position = UDim2.new(1,-65,0,4)
 	delete.Text = "Delete"
 	delete.BackgroundColor3 = Color3.fromRGB(120,40,40)
 	delete.TextColor3 = Color3.new(1,1,1)
 	delete.Parent = entry
-	
+
 	delete.MouseButton1Click:Connect(function()
 		gui:Destroy()
 		entry:Destroy()
 	end)
-	
-	guiEntries[entry] = gui
+
+	entries[entry] = gui
 end
 
--- ADD EXISTING GUIS
+-- Scan existing GUIs
 for _,v in pairs(playerGui:GetDescendants()) do
 	if v:IsA("GuiObject") or v:IsA("ScreenGui") then
 		createEntry(v)
 	end
 end
 
--- ADD NEW GUIS LIVE
+-- Detect new GUIs
 playerGui.DescendantAdded:Connect(function(v)
 	if v:IsA("GuiObject") or v:IsA("ScreenGui") then
 		createEntry(v)
 	end
 end)
 
--- SEARCH FUNCTION
+-- Search system
 search:GetPropertyChangedSignal("Text"):Connect(function()
+
 	local text = string.lower(search.Text)
-	
-	for entry,gui in pairs(guiEntries) do
+
+	for entry,gui in pairs(entries) do
 		if string.find(string.lower(gui.Name), text) then
 			entry.Visible = true
 		else
 			entry.Visible = false
 		end
 	end
+
 end)
